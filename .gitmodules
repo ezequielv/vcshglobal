@@ -1,0 +1,3 @@
+[submodule "vcsh-modules"]
+	path = modules/vcsh-modules
+	url = https://github.com/ezequielv/vcsh-modules.git
