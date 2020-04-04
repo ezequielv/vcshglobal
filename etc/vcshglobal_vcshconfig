@@ -1,0 +1,317 @@
+# default vcsh config file when used inside 'vcshglobal(1)'.
+
+f_vcshglobal_vcshconfig_abort()
+{
+	echo "[...]/rootdir/usr/local/etc/vcshglobal_vcshconfig: ERROR:" "$@" 1>&2
+	exit 1
+}
+
+# example: ~/scm/git/ev/vcshglobal/modules/vcsh-modules/.config/vcsh/gitmodules
+g_vcshglobal_vcshmodules_pathreltocfg='.config/vcsh/gitmodules'
+
+f_vcshglobal_vcshconfig_isvcshmodcfgdir()
+{
+	l_vcshglobal_vcshconfig_isvcshmodcfgdir_cfgdir="$1" \
+		&& [ -n "${l_vcshglobal_vcshconfig_isvcshmodcfgdir_cfgdir}" \
+			-a -d "${l_vcshglobal_vcshconfig_isvcshmodcfgdir_cfgdir}/" ] \
+		&& [ -r "${l_vcshglobal_vcshconfig_isvcshmodcfgdir_cfgdir}/config" \
+				-a -r "${l_vcshglobal_vcshconfig_isvcshmodcfgdir_cfgdir}/git-submodule" ] \
+		&& l_vcshglobal_vcshconfig_isvcshmodcfgdir_rc=0 \
+		|| l_vcshglobal_vcshconfig_isvcshmodcfgdir_rc=$?
+		# end
+
+	unset \
+		l_vcshglobal_vcshconfig_isvcshmodcfgdir_cfgdir \
+		# end
+	return ${l_vcshglobal_vcshconfig_isvcshmodcfgdir_rc}
+}
+
+# prev: v2: f_vcshglobal_vcshconfig_isvcshmodbasedir()
+# prev: v2: {
+# prev: v2: 	# prev: v1: l_vcshglobal_vcshconfig_isvcshmodbasedir_topdir="$1" \
+# prev: v2: 	# prev: v1: 	&& [ -n "${l_vcshglobal_vcshconfig_isvcshmodbasedir_topdir}" \
+# prev: v2: 	# prev: v1: 		-a -d "${l_vcshglobal_vcshconfig_isvcshmodbasedir_topdir}/" ] \
+# prev: v2: 	# prev: v1: 	&& l_vcshglobal_vcshconfig_isvcshmodbasedir_cfgdir="${l_vcshglobal_vcshconfig_isvcshmodbasedir_topdir}${g_vcshglobal_vcshmodules_pathreltocfg:+/${g_vcshglobal_vcshmodules_pathreltocfg}}" \
+# prev: v2: 	# prev: v1: 	&& f_vcshglobal_vcshconfig_isvcshmodcfgdir "${l_vcshglobal_vcshconfig_isvcshmodbasedir_cfgdir}" \
+# prev: v2: 	# prev: v1: 	&& l_vcshglobal_vcshconfig_isvcshmodbasedir_rc=0 \
+# prev: v2: 	# prev: v1: 	|| l_vcshglobal_vcshconfig_isvcshmodbasedir_rc=$?
+# prev: v2: 	# prev: v1: 	# end
+# prev: v2:
+# prev: v2: 	# prev: v1: unset \
+# prev: v2: 	# prev: v1: 	l_vcshglobal_vcshconfig_isvcshmodbasedir_topdir \
+# prev: v2: 	# prev: v1: 	l_vcshglobal_vcshconfig_isvcshmodbasedir_cfgdir \
+# prev: v2: 	# prev: v1: 	# end
+# prev: v2: 	# prev: v1: return ${l_vcshglobal_vcshconfig_isvcshmodbasedir_rc}
+# prev: v2:
+# prev: v2: 	[ -n "$1" -a -d "${1}/" ] \
+# prev: v2: 		&& f_vcshglobal_vcshconfig_isvcshmodcfgdir "${1}${g_vcshglobal_vcshmodules_pathreltocfg:+/${g_vcshglobal_vcshmodules_pathreltocfg}}" \
+# prev: v2: 		# end
+# prev: v2: }
+
+# DOC: see 'vcsh(1)', section 'CONFIG' for a list of environment variables that can be set.
+[ -n "$VCSH_DEBUG" ] \
+	&& echo "[DEBUG] hello from /usr/local/opt/vcshglobal/rootdir/usr/local/etc/vcshglobal_vcshconfig" 1>&2 \
+	|| true
+
+# this is owr own variable
+# prev: v1: vcsh_opt_vcshroot="${VCSHGLOBAL_OPT_BASEDIR}/vcsh"
+vcsh_opt_vcshroot="${VCSHGLOBAL_CONFIG_BASEDIR}/vcsh"
+
+[ -n "${vcsh_opt_vcshroot}" -a -d "${vcsh_opt_vcshroot}/" ] \
+	|| f_vcshglobal_vcshconfig_abort "empty value/dir not found for vcsh_opt_vcshroot: '${vcsh_opt_vcshroot}'" \
+	|| return $?
+
+unset vcsh_var_vcshroot
+for t_pathname in \
+	/var/local/vcshglobal \
+	/var/vcshglobal \
+	# end
+do
+	[ -n "${t_pathname}" -a -d "${t_pathname}/" ] \
+		|| continue
+
+	t_pathname="${t_pathname}/vcsh"
+	mkdir -pv "${t_pathname}" \
+		&& [ -d "${t_pathname}/" ] \
+		|| continue
+
+	#-? t_pathname="${t_pathname}/repo.d"
+	#-? mkdir -pv "${t_pathname}" \
+	#-? 	&& [ -d "${t_pathname}/" ] \
+	#-? 	|| continue
+
+	vcsh_var_vcshroot="${t_pathname}"
+done
+[ -n "${vcsh_var_vcshroot}" ] \
+	|| f_vcshglobal_vcshconfig_abort "could not calculate a value for vcsh_var_vcshroot" \
+	|| return $?
+
+#-? VCSH_BASE="${VCSHGLOBAL_OPT_ROOTDIR}"
+#-? VCSH_BASE="${VCSHGLOBAL_OPT_BASEDIR}/vcshbases"
+#-? VCSH_BASE="${VCSHGLOBAL_OPT_BASEDIR}/vcshbase"
+VCSH_BASE="${VCSHGLOBAL_OPT_BASEDIR}"
+VCSH_REPO_D="${vcsh_var_vcshroot}/repo.d"
+VCSH_HOOK_D="${vcsh_opt_vcshroot}/hooks/hooks-enabled"
+VCSH_OVERLAY_D="${vcsh_opt_vcshroot}/overlays/overlays-enabled"
+
+[ -n "${VCSH_BASE}" -a -d "${VCSH_BASE}/" ] \
+	|| f_vcshglobal_vcshconfig_abort "empty value/dir not found for VCSH_BASE: '${VCSH_BASE}'" \
+	|| return $?
+
+# MAYBE: we need something like this to also happen when calling 'mr' through 'mrvcshglobal'
+# optionally change HOME to point to VCSHGLOBAL_HOMEDIR
+if [ -n "${VCSHGLOBAL_HOMEDIR}" -a -d "${VCSHGLOBAL_HOMEDIR}/" ] ; then
+	HOME="${VCSHGLOBAL_HOMEDIR}" \
+		&& export HOME \
+		# end
+fi
+
+# detect VCSH_MODULES_SOURCEPATH, unless the (new) variable VCSH_MODULES_DETECT
+# (default: 1) is '0'.
+if [ -z "${VCSH_MODULES_SOURCEPATH}" -a "${VCSH_MODULES_DETECT:-1}" -ne 0 ] ; then
+	for t_stageid in \
+		stageid_vcshglobalmodsrcpath_relpath_prgasis \
+		stageid_vcshglobalmodsrcpath_relpath_prglinkdst \
+		# end
+	do
+		unset t_dirnow
+		case "${t_stageid}" in
+			stageid_vcshglobalmodsrcpath_relpath_prgasis | stageid_vcshglobalmodsrcpath_relpath_prglinkdst )
+				# DOC: uses VCSHGLOBAL_LASTPRGPATHNAME (guaranteed to be
+				# non-empty, but we code defensively here).
+				[ -n "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
+					|| continue
+
+				case "${t_stageid}" in
+					stageid_vcshglobalmodsrcpath_relpath_prgasis )
+						t_prgnow="${VCSHGLOBAL_LASTPRGPATHNAME}"
+						;;
+
+					stageid_vcshglobalmodsrcpath_relpath_prglinkdst )
+						unset t_prgnow
+						t_prgnow=`readlink -f "${VCSHGLOBAL_LASTPRGPATHNAME}" 2> /dev/null` \
+							&& [ -n "${t_prgnow}" ] \
+							|| continue \
+							# end
+						;;
+				esac
+				[ -n "${t_prgnow}" -a -x "${t_prgnow}" ] \
+					&& t_dirbase="${t_prgnow%/*}" \
+					&& [ "${t_dirbase}" != "${t_prgnow}" ] \
+					&& [ -n "${t_dirbase}" ] \
+					|| continue \
+					# end
+
+				# prev: v2: for t_pathnamesuff in \
+				# prev: v2: 	../modules/vcsh-modules \
+				# prev: v2: 	../vcsh-modules \
+				# prev: v2: 	# end
+				# prev: v2: do
+				# prev: v2: 	[ -n "${t_pathnamesuff}" ] \
+				# prev: v2: 		|| continue
+				# prev: v2: 	# prev: v1: t_dirnow="${t_dirbase}/${t_pathnamesuff}" \
+				# prev: v2: 	# prev: v1: 	&& f_vcshglobal_vcshconfig_isvcshmodbasedir "${t_dirnow}" \
+				# prev: v2: 	# prev: v1: 	&& t_dirnow="${t_dirnow}${g_vcshglobal_vcshmodules_pathreltocfg:+/${g_vcshglobal_vcshmodules_pathreltocfg}}" \
+				# prev: v2: 	# prev: v1: 	&& VCSH_MODULES_SOURCEPATH="${t_dirnow}" \
+				# prev: v2: 	# prev: v1: 	&& break \
+				# prev: v2: 	# prev: v1: 	|| continue
+				# prev: v2: 	t_dirnow="${t_dirbase}/${t_pathnamesuff}${g_vcshglobal_vcshmodules_pathreltocfg:+/${g_vcshglobal_vcshmodules_pathreltocfg}}" \
+				# prev: v2: 		&& f_vcshglobal_vcshconfig_isvcshmodcfgdir "${t_dirnow}" \
+				# prev: v2: 		&& VCSH_MODULES_SOURCEPATH="${t_dirnow}" \
+				# prev: v2: 		&& break \
+				# prev: v2: 		|| continue
+				# prev: v2: done
+				for t_pathnameroot in \
+					.. \
+					# end
+				do
+					t_pathname_partial_inc_root="${t_dirbase}"
+
+					# add non-empty component using a path separator
+					[ -z "${t_pathnameroot}" ] \
+						|| t_pathname_partial_inc_root="${t_pathname_partial_inc_root}/${t_pathnameroot}"
+
+					# partial component must be a directory
+					[ -d "${t_pathname_partial_inc_root}/" ] \
+						|| continue
+
+					for t_pathname_pref_1 in \
+						'.local-overrides' \
+						'.local/overrides' \
+						'' \
+						# end
+					do
+						t_pathname_partial_inc_pref_1="${t_pathname_partial_inc_root}"
+
+						# add non-empty component using a path separator
+						[ -z "${t_pathname_pref_1}" ] \
+							|| t_pathname_partial_inc_pref_1="${t_pathname_partial_inc_pref_1}/${t_pathname_pref_1}"
+
+						# partial component must be a directory
+						[ -d "${t_pathname_partial_inc_pref_1}/" ] \
+							|| continue
+
+						for t_pathname_pref_2 in \
+							'modules' \
+							'' \
+							# end
+						do
+							t_pathname_partial_inc_pref_2="${t_pathname_partial_inc_pref_1}"
+
+							# add non-empty component using a path separator
+							[ -z "${t_pathname_pref_2}" ] \
+								|| t_pathname_partial_inc_pref_2="${t_pathname_partial_inc_pref_2}/${t_pathname_pref_2}"
+
+							# partial component must be a directory
+							[ -d "${t_pathname_partial_inc_pref_2}/" ] \
+								|| continue
+
+							for t_pathname_pref_3 in \
+								'vcsh-modules' \
+								# end
+							do
+								t_pathname_partial_inc_pref_3="${t_pathname_partial_inc_pref_2}"
+
+								# add non-empty component using a path separator
+								[ -z "${t_pathname_pref_3}" ] \
+									|| t_pathname_partial_inc_pref_3="${t_pathname_partial_inc_pref_3}/${t_pathname_pref_3}"
+
+								# partial component must be a directory
+								[ -d "${t_pathname_partial_inc_pref_3}/" ] \
+									|| continue
+
+								for t_pathname_pref_4 in \
+									${g_vcshglobal_vcshmodules_pathreltocfg:+"${g_vcshglobal_vcshmodules_pathreltocfg}"} \
+									'' \
+									# end
+								do
+									t_pathname_partial_inc_pref_4="${t_pathname_partial_inc_pref_3}"
+
+									# add non-empty component using a path separator
+									[ -z "${t_pathname_pref_4}" ] \
+										|| t_pathname_partial_inc_pref_4="${t_pathname_partial_inc_pref_4}/${t_pathname_pref_4}"
+
+									# partial component must be a directory
+									[ -d "${t_pathname_partial_inc_pref_4}/" ] \
+										|| continue
+
+									# 'submodules' directory detection
+									t_dirnow="${t_pathname_partial_inc_pref_4}" \
+										&& f_vcshglobal_vcshconfig_isvcshmodcfgdir "${t_dirnow}" \
+										&& VCSH_MODULES_SOURCEPATH="${t_dirnow}" \
+										&& break \
+										|| continue
+								done
+								# loop exit condition
+								[ -n "${VCSH_MODULES_SOURCEPATH}" ] && break
+							done
+							# loop exit condition
+							[ -n "${VCSH_MODULES_SOURCEPATH}" ] && break
+						done
+						# loop exit condition
+						[ -n "${VCSH_MODULES_SOURCEPATH}" ] && break
+					done
+					# loop exit condition
+					[ -n "${VCSH_MODULES_SOURCEPATH}" ] && break
+				done
+				unset t_dirnow
+				;;
+
+			* )
+				f_vcshglobal_vcshconfig_abort "internal error: unsupported stageid '${t_stageid}'"
+				;;
+		esac
+		# leave the loop if inner code has set the output variable already.
+		[ -n "${VCSH_MODULES_SOURCEPATH}" ] && break
+
+		[ -n "${t_dirnow}" ] \
+			&& f_vcshglobal_vcshconfig_isvcshmodcfgdir "${t_dirnow}" \
+			&& VCSH_MODULES_SOURCEPATH="${t_dirnow}" \
+			|| continue
+
+		break
+	done
+	unset \
+		t_stageid \
+		t_dirnow \
+		t_prgnow \
+		t_dirbase \
+		t_pathnameroot \
+		t_pathname_partial_inc_root \
+		t_pathname_pref_1 \
+		t_pathname_partial_inc_pref_1 \
+		t_pathname_pref_2 \
+		t_pathname_partial_inc_pref_2 \
+		t_pathname_pref_3 \
+		t_pathname_partial_inc_pref_3 \
+		t_pathname_pref_4 \
+		t_pathname_partial_inc_pref_4 \
+		# end
+fi
+
+# conditionally source the configured 'vcsh' config file.
+if [ -n "${VCSH_MODULES_SOURCEPATH}" -a -d "${VCSH_MODULES_SOURCEPATH}/" ] ; then
+	export VCSH_MODULES_SOURCEPATH
+
+	t_vcsh_modules_sp_config="${VCSH_MODULES_SOURCEPATH}/config" \
+		&& [ -f "${t_vcsh_modules_sp_config}" -a -r "${t_vcsh_modules_sp_config}" ] \
+		|| f_vcshglobal_vcshconfig_abort "could not file config file '${t_vcsh_modules_sp_config}'"
+
+	. "${t_vcsh_modules_sp_config}" \
+		|| f_vcshglobal_vcshconfig_abort "sourcing of file '${t_vcsh_modules_sp_config}' returned an error ($?)"
+
+	unset t_vcsh_modules_sp_config
+fi
+
+[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal_vcshconfig: args: '$@'" 1>&2
+
+
+# prev: v1: DEBUG: set | grep -E -e '^(GIT|VCSH)' | sort
+[ -n "$VCSH_DEBUG" ] \
+	&& { set | grep -E -e '^(GIT|VCSH)' | sort ; } 1>&2 \
+	|| true
+
+:
+# vim600: set filetype=sh fileformat=unix:
+# vim: set noexpandtab:
+# vi: set autoindent tabstop=4 shiftwidth=4:

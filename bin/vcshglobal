@@ -1,0 +1,84 @@
+#!/bin/sh
+set -e
+
+# TEST: # TODO: either remove this comment or this attempt at fixing the overwritten program args.
+# TEST: #  TODO: roll back the code near the end of the script, if needed (put back the "$@")
+# TEST: vcshglobal_top_args="$*"
+
+[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (initial): '$@'" 1>&2
+
+# boilerplate code for scripts under {someroot}/usr/local/opt/vcshglobal {{{
+VCSHGLOBAL_LASTPRGPATHNAME="$0" \
+	&& . "${VCSHGLOBAL_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
+	|| {
+		rc=$?
+		echo "${0}: ERROR: failed to source local '.vcshglobal-sh-init' file on same directory (rc=$rc)" 1>&2
+		exit rc
+	}
+# }}}
+
+[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (after sourcing .vcshglobal-sh-init): '$@'" 1>&2
+
+# TODO: move to the "functions" file {{{
+unset \
+	VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG \
+	# end
+
+# args: [MODE]
+#  MODE
+#    'f' : forced
+#    'c' : conditional (default)
+f_process_vcsh_vars()
+{
+	case "${1:-c}" in
+		f | forced )
+			# MAYBE: leave this some/all of these alone?
+			unset \
+				VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE \
+				# end
+			;;
+
+		c | cond )
+			[ -z "${VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG}" ] \
+				|| return 0
+			;;
+
+		* )
+			# TODO: report error: invalid args
+			return 1 ;;
+	esac
+
+	if [ -z "${VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE}" -a -n "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] ; then
+		VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE="-c ${VCSHGLOBAL_VCSH_CONFIG_FILE}"
+	fi
+	VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG=1
+	# always regenerate these variables form their parts
+	VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL="${VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE}"
+	VCSHGLOBAL_VCSH_OPTIONS_POST_ALL=""
+}
+
+f_vcsh_run()
+{
+	f_process_vcsh_vars c || return $?
+
+	#? vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@" ${VCSHGLOBAL_VCSH_OPTIONS_POST_ALL}
+	vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@"
+}
+
+f_vcsh_exec()
+{
+	f_process_vcsh_vars c || return $?
+
+	[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: f_vcsh_exec(): args (about to exec vcsh): '${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} $@'" 1>&2
+
+	#? exec vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@" ${VCSHGLOBAL_VCSH_OPTIONS_POST_ALL}
+	exec vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@"
+}
+
+# }}}
+
+[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (about to exec vcsh): '$@'" 1>&2
+
+# TEST: #-? f_vcsh_exec "$@"
+# TEST: f_vcsh_exec ${vcshglobal_top_args}
+f_vcsh_exec "$@"

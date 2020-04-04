@@ -1,0 +1,170 @@
+# shell script
+
+# basic functions {{{
+f_vcshglobal_echo_to_stdout()
+{
+	echo "${VCSHGLOBAL_LASTPRGPATHNAME:-$0}:" "$@" 1>&2
+}
+
+f_vcshglobal_error()
+{
+	f_vcshglobal_echo_to_stdout "ERROR:" "$@"
+	return 1
+}
+
+f_vcshglobal_abort()
+{
+	f_vcshglobal_error "$@" "-- aborting" \
+		|| exit $?
+}
+# }}}
+
+# initial validation {{{
+[ -n "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
+	|| f_vcshglobal_abort "required variable VCSHGLOBAL_LASTPRGPATHNAME has not been set by the main program script"
+[ -f "${VCSHGLOBAL_LASTPRGPATHNAME}" -a -x "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
+	|| f_vcshglobal_abort "VCSHGLOBAL_LASTPRGPATHNAME ('${VCSHGLOBAL_LASTPRGPATHNAME}') does not seem to be a valid executable"
+# }}}
+
+# set environment for child processes -- step 1 {{{
+export VCSHGLOBAL_LASTPRGPATHNAME
+# }}}
+
+# get value for VCSHGLOBAL_OPT_BASEDIR {{{
+if [ -z "${VCSHGLOBAL_OPT_BASEDIR}" ] ; then
+	unset t_dirnow
+
+	for t_stageid in \
+		stageid_vcshglobalbasedir_prgasis \
+		stageid_vcshglobalbasedir_prglinkdst \
+		stageid_vcshglobalbasedir_hc_01 \
+		# end
+	do
+		unset t_dirnow
+		case "${t_stageid}" in
+			stageid_vcshglobalbasedir_prgasis | stageid_vcshglobalbasedir_prglinkdst )
+				[ -n "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
+					|| continue
+
+				case "${t_stageid}" in
+					stageid_vcshglobalbasedir_prgasis )
+						t_prgnow="${VCSHGLOBAL_LASTPRGPATHNAME}"
+						;;
+
+					stageid_vcshglobalbasedir_prglinkdst )
+						unset t_prgnow
+						t_prgnow=`readlink -f "${VCSHGLOBAL_LASTPRGPATHNAME}" 2> /dev/null` \
+							&& [ -n "${t_prgnow}" ] \
+							|| continue \
+							# end
+						;;
+
+					* )
+						f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${t_stageid}'" ;;
+
+				esac
+				[ -n "${t_prgnow}" ] \
+					&& t_dirnow="${t_prgnow%/opt/vcshglobal/*}" \
+					&& [ "${t_dirnow}" != "${t_prgnow}" ] \
+					&& t_dirnow="${t_dirnow}/opt/vcshglobal" \
+					|| continue \
+					# end
+				;;
+
+			stageid_vcshglobalbasedir_hc_01 )
+				t_dirnow='/usr/local/opt/vcshglobal' ;;
+
+			* )
+				f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${t_stageid}'" ;;
+
+		esac
+
+		[ -n "${t_dirnow}" -a -d "${t_dirnow}/" ] \
+			&& [ -d "${t_dirnow}/rootdir/" ] \
+			|| continue \
+			# end
+
+		VCSHGLOBAL_OPT_BASEDIR="${t_dirnow}"
+		[ -n "${VCSH_DEBUG}" ] \
+			&& echo "[DEBUG] found value for VCSHGLOBAL_OPT_BASEDIR='${VCSHGLOBAL_OPT_BASEDIR}' in stageid '${t_stageid}'" 1>&2 \
+			|| true
+		break
+	done
+	[ -n "${VCSHGLOBAL_OPT_BASEDIR}" ] \
+		|| {
+			echo "${VCSHGLOBAL_LASTPRGPATHNAME}: ERROR: could not work out a valid value for VCSHGLOBAL_OPT_BASEDIR" 1>&2
+			exit 1
+		}
+	export VCSHGLOBAL_OPT_BASEDIR
+fi
+# }}}
+
+# set up some more defaults {{{
+: "${VCSHGLOBAL_OPT_ROOTDIR:=${VCSHGLOBAL_OPT_BASEDIR}/rootdir}"
+export VCSHGLOBAL_OPT_ROOTDIR
+
+: "${VCSHGLOBAL_OPT_CFGDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
+export VCSHGLOBAL_OPT_CFGDIR
+# }}}
+
+# prev: v1: # load shell functions {{{
+# prev: v1: . "${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/lib/vcshglobal/sh-functions"
+# prev: v1: # }}}
+
+# MAYBE: move the code below to a file sourced from/a function inside the 'functions' script
+
+#? : "${VCSHGLOBAL_OPTION_CONFIG_SYS:=${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/vcshglobal}"
+#? : "${VCSHGLOBAL_OPTION_CONFIG_USER:=/usr/local/etc/vcshglobal}"
+# load the first config file from a list of alternatives {{{
+if [ -z "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
+	for t_stageid in \
+		stageid_cfgfile_uservar \
+		stageid_cfgfile_hc_usr_local_etc \
+		stageid_cfgfile_hc_vcshglobal_rootdir_usr_local_etc \
+		stageid_cfgfile_hc_vcshglobal_basedir_local_etc \
+		# end
+	do
+		unset t_pathname
+		case "${t_stageid}" in
+			stageid_cfgfile_uservar )
+				# TODO: document VCSHGLOBAL_CONFIG_FILE environment variable
+				t_pathname="${VCSHGLOBAL_CONFIG_FILE}"
+				;;
+
+			stageid_cfgfile_hc_usr_local_etc )
+				t_pathname="/usr/local/etc/vcshglobal"
+				;;
+
+			stageid_cfgfile_hc_vcshglobal_rootdir_usr_local_etc )
+				t_pathname="${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/vcshglobal"
+				;;
+
+			stageid_cfgfile_hc_vcshglobal_basedir_local_etc )
+				t_pathname="${VCSHGLOBAL_OPT_BASEDIR}/local/etc/vcshglobal"
+				;;
+
+			* )
+				f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${t_stageid}'"
+				;;
+
+		esac
+		[ -n "${t_pathname}" -a -f "${t_pathname}" -a -r "${t_pathname}" ] \
+			&& VCSHGLOBAL_OPTION_CONFIG="${t_pathname}" \
+			|| continue
+	done
+	[ -n "${VCSHGLOBAL_OPTION_CONFIG}" ] \
+		&& export VCSHGLOBAL_OPTION_CONFIG
+fi
+
+if [ -n "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
+	. "${VCSHGLOBAL_OPTION_CONFIG}" \
+		|| f_vcshglobal_abort "error sourcing config file '${VCSHGLOBAL_OPTION_CONFIG}'"
+fi
+# }}}
+
+# defaults {{{
+# }}}
+
+# vim600: set filetype=sh fileformat=unix:
+# vim: set noexpandtab:
+# vi: set autoindent tabstop=4 shiftwidth=4:

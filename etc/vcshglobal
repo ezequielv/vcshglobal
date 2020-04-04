@@ -1,0 +1,122 @@
+# default vcshglobal config file
+
+# args: BASENAME
+# side effects:
+#  * on a file successfully found:
+#   * sets g_vcshglobal_cfg_cfgfile to an existing file;
+#   * returns 0;
+#  * on no cfg file being found:
+#   * unsets g_vcshglobal_cfg_cfgfile;
+#   * returns 0;
+#  * on error:
+#   * returns a non-zero value;
+f_vcshglobal_cfg_findcfgfile()
+{
+	l_vcshglobal_cfg_findcfgfile_basename="$1"
+	unset g_vcshglobal_cfg_cfgfile
+
+	[ -n "${l_vcshglobal_cfg_findcfgfile_basename}" ] \
+		|| return 1
+
+	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE
+	# prev: v1: ${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
+	#
+	for l_vcshglobal_cfg_findcfgfile_pathname in \
+		${l_vcshglobal_cfg_findcfgfile_basename:+"/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${l_vcshglobal_cfg_findcfgfile_basename:+"/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
+		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
+		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
+		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_BASEDIR:+"${VCSHGLOBAL_OPT_BASEDIR}/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
+		# end
+	do
+		[ -n "${l_vcshglobal_cfg_findcfgfile_pathname}" -a -f "${l_vcshglobal_cfg_findcfgfile_pathname}" -a -r "${l_vcshglobal_cfg_findcfgfile_pathname}" ] \
+			|| continue
+
+		g_vcshglobal_cfg_cfgfile="${l_vcshglobal_cfg_findcfgfile_pathname}" \
+			&& break
+	done
+
+	unset \
+		l_vcshglobal_cfg_findcfgfile_basename \
+		l_vcshglobal_cfg_findcfgfile_pathname \
+		# end
+	return 0
+}
+
+# VCSHGLOBAL_VCSH_CONFIG_FILE {{{
+if [ -z "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] ; then
+	#? [ -n "${VCSHGLOBAL_OPT_BASEDIR}" ] \
+	#? 	|| return 1
+
+	# prev: v1: : "${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:=vcshglobal_vcshconfig}"
+
+	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE {{{
+	# prev: v1: for t_pathname in \
+	# prev: v1: 	${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:+"/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
+	# prev: v1: 	${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:+"/usr/local/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
+	# prev: v1: 	${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
+	# prev: v1: 	${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
+	# prev: v1: 	${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
+	# prev: v1: 	# end
+	# prev: v1: do
+	# prev: v1: 	[ -n "${t_pathname}" -a -f "${t_pathname}" -a -r "${t_pathname}" ] \
+	# prev: v1: 		|| continue
+	# prev: v1: 	VCSHGLOBAL_VCSH_CONFIG_FILE="${t_pathname}" \
+	# prev: v1: 		&& break
+	# prev: v1: done
+	f_vcshglobal_cfg_findcfgfile \
+			"${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:=vcshglobal_vcshconfig}" \
+		|| return $?
+	# prev: v2: [ -n "${g_vcshglobal_cfg_cfgfile}" ] \
+	# prev: v2: 	&& VCSHGLOBAL_VCSH_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
+	VCSHGLOBAL_VCSH_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
+	# }}}
+fi
+
+[ -n "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] \
+	&& export VCSHGLOBAL_VCSH_CONFIG_FILE \
+	# end
+# }}}
+
+# VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE {{{
+if [ -z "${VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE}" ] ; then
+	f_vcshglobal_cfg_findcfgfile \
+			"${VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_DETECT_BASENAME:=vcshglobal_mrconfig}" \
+		|| return $?
+	VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
+fi
+
+[ -n "${VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE}" ] \
+	&& export VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE \
+	# end
+# }}}
+
+# VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR {{{
+# MAYBE: try to use one of several possibilities, based on the variables we've got so far.
+if [ -z "${VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR}" -a -n "${VCSHGLOBAL_OPT_BASEDIR}" ] ; then
+	VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR="${VCSHGLOBAL_OPT_BASEDIR}"
+fi
+
+[ -n "${VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR}" ] \
+	&& export VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR \
+	# end
+# }}}
+
+# VCSHGLOBAL_CONFIG_BASEDIR {{{
+# prev: v1: : "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
+# prev: v1: [ -n "${VCSHGLOBAL_CONFIG_BASEDIR}" -a -d "${VCSHGLOBAL_CONFIG_BASEDIR}/" ] \
+# prev: v1: 	|| f_vcshglobal_vcshconfig_abort "empty value/dir not found for VCSHGLOBAL_CONFIG_BASEDIR: '${VCSHGLOBAL_CONFIG_BASEDIR}'" \
+# prev: v1: 	|| return $?
+# prev: v1: export VCSHGLOBAL_CONFIG_BASEDIR
+: "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
+[ -n "${VCSHGLOBAL_CONFIG_BASEDIR}" ] \
+	&& export VCSHGLOBAL_CONFIG_BASEDIR \
+	# end
+# }}}
+
+# return value
+:
+# vim600: set filetype=sh fileformat=unix:
+# vim: set noexpandtab:
+# vi: set autoindent tabstop=4 shiftwidth=4:
