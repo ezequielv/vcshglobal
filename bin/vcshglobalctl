@@ -39,10 +39,20 @@ Notes:
 
  TODO: document
 
+-1
+    output a single record without its COMMAND field (which is the first)
+
 -v
     include the COMMAND as the first field on each output record
 
 * command options:
+
+-1
+    output a single record without its command-specific key field (which is the
+    first).
+    # old: note: this requires the -1 option to be specified globally
+    note: this forces the "-1" flag;
+    note: this is incompatible with the global "-v" flag;
 
  TODO: document
 
@@ -126,8 +136,10 @@ f_send_record()
 
 	# TODO: validate that this function is not called more than once when the
 	# record format is "single".
+
 	# get rid of the first field when the format requires it.
-	[ "${g_record_format}" = "single" ] && shift
+	#-? [ "${g_record_format}" = "single" ] && shift
+
 	case "${g_record_format}" in
 		single )
 			# for now, we allow multiple records with the same key, just in
@@ -164,13 +176,18 @@ f_send_record()
 	return 0
 }
 
-# MAYBE: create another version, too: f_cmdhandler_send_record()
+# notes:
+#  * uses 'g_current_cmdopt_recsingle' to decide whether to output the first
+#    function argument (which is believed to be the command's own "key");
 f_cmdhandler_send_record()
 {
 	[ -n "${g_current_cmdid}" ] \
 		|| f_vcshglobal_abort "f_cmdhandler_send_record(): invalid context: no current command id (g_current_cmdid)"
 	[ -n "$1" ] \
 		|| f_vcshglobal_abort "f_cmdhandler_send_record(): invalid args: no key specified"
+	# conditionally get rid of the command's own "key" field.
+	[ ${g_current_cmdopt_recsingle} -ne 0 ] \
+		&& shift
 	f_send_record ${g_verbose_flag:+"${g_current_cmdid}"} "$@"
 }
 
@@ -190,9 +207,11 @@ f_set_record_format 'multi'
 # }}}
 
 # getopts {{{
-while getopts 'vDh' arg
+while getopts '1vDh' arg
 do
 	case "${arg}" in
+		1)	f_set_record_format 'single' ;;
+
 		v)	g_verbose_flag=1 ;;
 		D)	global_debug_flag=1 ;;
 
@@ -207,6 +226,12 @@ shift $(($OPTIND - 1)) ; OPTIND=1
 [ $# -gt 0 ] \
 	|| f_vcshglobal_error "please specify a COMMAND" \
 	|| f_help 1
+# }}}
+
+# validations {{{
+[ "${g_record_format}" != 'single' \
+		-o -z "${g_verbose_flag}" ] \
+	|| f_vcshglobal_abort "specifying '-v' and '-1' together is not supported"
 # }}}
 
 # TEST: DEBUG: f_send_record somekey field1 field2
@@ -230,53 +255,135 @@ f_cmdhandler_abort()
 #    * no need to perform 'getops(1)' "cleanup" operations either;
 #
 
+#-? # args: GETOPTS_OPTIONS_STRING [CALLER_ARGS...]
+#-? # side effects:
+#-? #  * sets/clears the following variables:
+#-? #   * g_current_cmdopt_recsingle={0 | 1}
+#-? #
+#-? #  * g_current_cmdopt_evalpostopt:
+#-? #      string to be eval(1)-ed (will contain the right "shift", plus things
+#-? #      like OPTIND=1, etc.);
+#-? #      NOTE: eval(1)-ing an empty string returns zero, and it is valid.
+#-? f_cmdhandler_proccommonopt()
+#-? {
+#-? 	unset \
+#-? 		g_current_cmdopt_evalpostopt \
+#-? 		# end
+#-? 	g_current_cmdopt_recsingle=0
+#-?
+#-? 	l_cmdhandler_proccommonopt_getoptsstr="$1"
+#-? 	shift \
+#-? 		|| f_cmdhandler_abort "f_cmdhandler_proccommonopt():" \
+#-? 				"invalid call syntax: needs an arg for the supported options" \
+#-? 				"(even if that is the empty string)"
+#-?
+#-? 	while getopts "${l_cmdhandler_proccommonopt_getoptsstr}" \
+#-? 			l_cmdhandler_proccommonopt_opt
+#-? 	do
+#-? 		case "${l_cmdhandler_proccommonopt_opt}" in
+#-? 			# FIXME: see comments below
+#-? 			? )
+#-? 				# FIXME: this does not work, as we could have a
+#-? 				# command-specific option between "common" options.
+#-? 				#  NOTE: aborting idea.
+#-? 				f_cmdhandler_abort "f_cmdhandler_proccommonopt():" \
+#-? 						"invalid/unsupported option"
+#-? 				;;
+#-? 		esac
+#-? 	done
+#-?
+#-? 	return 0
+#-? }
+
+# args: GETOPT_ARG_VALUE
+#
+# notes:
+#  * reads/uses the '$OPTARG' variable, if needed;
+#
+# side effects:
+#  * set one or more of the following variables *when an option affects
+#    it/them* (these are initialised in 'f_proc_command()')
+#    * g_current_cmdopt_recsingle={0 | 1}
+#
+# returns:
+#  0: success:
+#      * sets variable 'g_cmdhandler_commonopt_processed' to non-zero if
+#        GETOPT_ARG_VALUE was recognised and processed;
+#  1: recoverable error -- but the caller can abort program execution if
+#     desired;
+#
+f_cmdhandler_proccommonopt()
+{
+	# defaults
+	g_cmdhandler_commonopt_processed=0
+	# moved_to_allow_multiple_options_not_overwriting_this_var: g_current_cmdopt_recsingle=0
+
+	l_cmdhandler_proccommonopt_opt="$1"
+	[ -n "${l_cmdhandler_proccommonopt_opt}" ] \
+		|| f_cmdhandler_abort "f_cmdhandler_proccommonopt():" \
+				"invalid call syntax: this should always be" \
+				"the var value set from a successful getopts(1) invocation"
+
+	g_cmdhandler_commonopt_processed=1
+	case "${l_cmdhandler_proccommonopt_opt}" in
+		1 )
+			g_current_cmdopt_recsingle=1
+			f_set_record_format 'single' \
+				|| f_cmdhandler_abort "failed to set" \
+						"single-record output format"
+			# prev: v1: [ "${g_record_format}" = 'single' ] \
+			# prev: v1: 	|| f_cmdhandler_abort "specifying '-1' when" \
+			# prev: v1: 			"displaying multiple records is not supported"
+			[ -z "${g_verbose_flag}" ] \
+				|| f_vcshglobal_abort "specifying '-v' and '-1' together is not supported"
+			;;
+
+		* )
+			g_cmdhandler_commonopt_processed=0 ;;
+	esac
+
+	return 0
+}
+
 f_handlecmd_query()
 {
 	l_handlecmd_query_rc=0
 
-	# defaults
-	l_handlecmd_query_single=0
-
 	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
 		while getopts '1' l_handlecmd_query_arg
 		do
-			case "${l_handlecmd_query_arg}" in
-				1)	l_handlecmd_query_single=1 ;;
+			f_cmdhandler_proccommonopt "${l_handlecmd_query_arg}" \
+				|| f_cmdhandler_abort "common processing failed"
+			# nothing to process if it was a "common" option
+			[ ${g_cmdhandler_commonopt_processed} -ne 0 ] && continue
 
-				?)	f_cmdhandler_abort "invalid option" ;;
+			case "${l_handlecmd_query_arg}" in
+				?)	f_cmdhandler_abort "invalid/unsupported option" ;;
 			esac
 		done
 		shift $(($OPTIND - 1)) ; OPTIND=1
+		# propagate variables updated by f_cmdhandler_proccommonopt()
+		# prev: v2: l_handlecmd_query_single="${g_current_cmdopt_recsingle}"
 	fi
 
 	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
 		l_handlecmd_query_gotquery=0
 
-		# FIXME: specifying the global flag '-v' and the local '-1' produces invalid output:
-		#  example: 
-		#   $ bin/vcshglobalctl -v query -1 list-queries
-		#   list-queries    list-queries    test-1
-		#
-		#   (the command 'query' is not displayed ('-v' requests that to
-		#   happen), and the 'list-queries' query id is shown, despite the
-		#   '-1')
-		#
-		# MAYBE: move (some of) this logic/option processing to
-		# f_proc_command()
-		if [ ${l_handlecmd_query_single} -ne 0 ] ; then
-			# prev: v1: g_record_format="single"
-			f_set_record_format 'single'
-		else
-			# prev: v1: g_record_format="multi"
-			f_set_record_format 'multi'
-		fi
+		# prev: v1: # validations
+		# prev: v1: [ ${l_handlecmd_query_single} -eq 0 \
+		# prev: v1: 		-o "${g_record_format}" = 'single' ] \
+		# prev: v1: 	|| f_cmdhandler_abort "specifying '-1' when" \
+		# prev: v1: 			"displaying multi-line records is not supported"
 
 		while [ $# -gt 0 ]
 		do
 			l_handlecmd_query_queryid="$1"
 			shift
 
-			[ ${l_handlecmd_query_single} -eq 0 \
+			# prev: v2: [ ${l_handlecmd_query_single} -eq 0 \
+			# prev: v2: 		-o ${l_handlecmd_query_gotquery} -eq 0 ] \
+			# prev: v2: 	|| f_cmdhandler_abort "only one query is supported when -1 is specified. query='${l_handlecmd_query_queryid}'; remaining args='$*'"
+			[ ${g_current_cmdopt_recsingle} -eq 0 \
 					-o ${l_handlecmd_query_gotquery} -eq 0 ] \
 				|| f_cmdhandler_abort "only one query is supported when -1 is specified. query='${l_handlecmd_query_queryid}'; remaining args='$*'"
 
@@ -310,9 +417,11 @@ f_handlecmd_query()
 		fi
 	fi
 
+	# prev: v2: l_handlecmd_query_single \
+	#
 	unset \
 		l_handlecmd_query_arg \
-		l_handlecmd_query_single \
+		l_handlecmd_query_gotquery \
 		# end
 	return ${l_handlecmd_query_rc}
 }
@@ -333,6 +442,8 @@ f_proc_command()
 		# 'getopts(1)' environment reset
 		OPTIND=1
 		g_current_cmdid="${l_proc_command_cmdid}"
+		# variables related to "common options":
+		g_current_cmdopt_recsingle=0
 
 		# MAYBE: support multiple commands here and in the global scope, by
 		# using a separator (say, "::").
