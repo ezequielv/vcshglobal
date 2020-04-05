@@ -247,46 +247,6 @@ f_cmdhandler_abort()
 #    * no need to perform 'getops(1)' "cleanup" operations either;
 #
 
-#-? # args: GETOPTS_OPTIONS_STRING [CALLER_ARGS...]
-#-? # side effects:
-#-? #  * sets/clears the following variables:
-#-? #   * g_current_cmdopt_recsingle={0 | 1}
-#-? #
-#-? #  * g_current_cmdopt_evalpostopt:
-#-? #      string to be eval(1)-ed (will contain the right "shift", plus things
-#-? #      like OPTIND=1, etc.);
-#-? #      NOTE: eval(1)-ing an empty string returns zero, and it is valid.
-#-? f_cmdhandler_proccommonopt()
-#-? {
-#-? 	unset \
-#-? 		g_current_cmdopt_evalpostopt \
-#-? 		# end
-#-? 	g_current_cmdopt_recsingle=0
-#-?
-#-? 	l_cmdhandler_proccommonopt_getoptsstr="$1"
-#-? 	shift \
-#-? 		|| f_cmdhandler_abort "f_cmdhandler_proccommonopt():" \
-#-? 				"invalid call syntax: needs an arg for the supported options" \
-#-? 				"(even if that is the empty string)"
-#-?
-#-? 	while getopts "${l_cmdhandler_proccommonopt_getoptsstr}" \
-#-? 			l_cmdhandler_proccommonopt_opt
-#-? 	do
-#-? 		case "${l_cmdhandler_proccommonopt_opt}" in
-#-? 			# FIXME: see comments below
-#-? 			? )
-#-? 				# FIXME: this does not work, as we could have a
-#-? 				# command-specific option between "common" options.
-#-? 				#  NOTE: aborting idea.
-#-? 				f_cmdhandler_abort "f_cmdhandler_proccommonopt():" \
-#-? 						"invalid/unsupported option"
-#-? 				;;
-#-? 		esac
-#-? 	done
-#-?
-#-? 	return 0
-#-? }
-
 # args: GETOPT_ARG_VALUE
 #
 # notes:
