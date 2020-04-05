@@ -7,7 +7,7 @@ set -e
 
 [ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (initial): '$@'" 1>&2
 
-# boilerplate code for scripts under {someroot}/usr/local/opt/vcshglobal {{{
+# boilerplate code for scripts under {vcshglobal}/bin {{{
 VCSHGLOBAL_LASTPRGPATHNAME="$0" \
 	&& . "${VCSHGLOBAL_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
 	|| {
