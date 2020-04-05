@@ -127,17 +127,14 @@ f_set_record_format()
 # ref: idea from 'ev_scm_getinfo'
 f_send_record()
 {
-	#? [ $# -gt 0 -a -n "$1" ]
 	[ -n "$1" ] || f_vcshglobal_abort "f_send_record(): invalid args: no key specified"
 	l_send_record_reckey="$1"
 
 	unset l_send_record_fmtstr
 
-	# TODO: validate that this function is not called more than once when the
-	# record format is "single".
-
-	# get rid of the first field when the format requires it.
-	#-? [ "${g_record_format}" = "single" ] && shift
+	# MAYBE: validate that this function is not called more than once when the
+	# record format is "single" (but the 'query' command might actually output
+	# more than one record for a single query type).
 
 	case "${g_record_format}" in
 		single )
@@ -149,10 +146,6 @@ f_send_record()
 					"key_already_processed='${g_last_record_processed_key}';" \
 					"key_now='${l_send_record_reckey}';" \
 					# end
-			# TODO: determine whether we should strip the key from the
-			# resulting output, or if we rely on our callers (such as
-			# f_cmdhandler_send_record()) to do the stripping themselves.
-			#? shift
 			;;
 	esac
 	g_last_record_processed_key="${l_send_record_reckey}"
