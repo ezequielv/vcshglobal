@@ -37,24 +37,23 @@ Notes:
 
 * general options:
 
- TODO: document
-
 -1
     output a single record without its COMMAND field (which is the first)
+    note: this is mutually exclusive with "-v";
 
 -v
-    include the COMMAND as the first field on each output record
+    include the COMMAND as the first field on each output record.
+    default: records do not include the COMMAND as the first field --
+             all the fields are command-specific.
+    note: this is mutually exclusive with "-1";
 
 * command options:
 
 -1
     output a single record without its command-specific key field (which is the
     first).
-    # old: note: this requires the -1 option to be specified globally
     note: this forces the "-1" flag;
     note: this is incompatible with the global "-v" flag;
-
- TODO: document
 
 -h
     this help message.
