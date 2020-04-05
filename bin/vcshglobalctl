@@ -311,27 +311,16 @@ f_handlecmd_query()
 			esac
 		done
 		shift $(($OPTIND - 1)) ; OPTIND=1
-		# propagate variables updated by f_cmdhandler_proccommonopt()
-		# prev: v2: l_handlecmd_query_single="${g_current_cmdopt_recsingle}"
 	fi
 
 	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
 		l_handlecmd_query_gotquery=0
-
-		# prev: v1: # validations
-		# prev: v1: [ ${l_handlecmd_query_single} -eq 0 \
-		# prev: v1: 		-o "${g_record_format}" = 'single' ] \
-		# prev: v1: 	|| f_cmdhandler_abort "specifying '-1' when" \
-		# prev: v1: 			"displaying multi-line records is not supported"
 
 		while [ $# -gt 0 ]
 		do
 			l_handlecmd_query_queryid="$1"
 			shift
 
-			# prev: v2: [ ${l_handlecmd_query_single} -eq 0 \
-			# prev: v2: 		-o ${l_handlecmd_query_gotquery} -eq 0 ] \
-			# prev: v2: 	|| f_cmdhandler_abort "only one query is supported when -1 is specified. query='${l_handlecmd_query_queryid}'; remaining args='$*'"
 			[ ${g_current_cmdopt_recsingle} -eq 0 \
 					-o ${l_handlecmd_query_gotquery} -eq 0 ] \
 				|| f_cmdhandler_abort "only one query is supported when -1 is specified. query='${l_handlecmd_query_queryid}'; remaining args='$*'"
@@ -366,8 +355,6 @@ f_handlecmd_query()
 		fi
 	fi
 
-	# prev: v2: l_handlecmd_query_single \
-	#
 	unset \
 		l_handlecmd_query_arg \
 		l_handlecmd_query_gotquery \
