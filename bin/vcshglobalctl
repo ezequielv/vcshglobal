@@ -1,0 +1,381 @@
+#!/bin/sh
+set -e
+
+# TODO: this is the 'control' tool for 'vcshglobal', with its own interface.
+#  IDEA: use 'ev_scm_getinfo' for inspiration
+
+# boilerplate code for scripts under {vcshglobal}/bin {{{
+VCSHGLOBAL_LASTPRGPATHNAME="$0" \
+	&& . "${VCSHGLOBAL_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
+	|| {
+		rc=$?
+		echo "${0}: ERROR: failed to source local '.vcshglobal-sh-init' file on same directory (rc=$rc)" 1>&2
+		exit rc
+	}
+# }}}
+
+# syntax: f_help [exit_code]
+f_help()
+{
+	echo "${VCSHGLOBAL_LASTPRGPATHNAME}" '[general options] [--] [COMMAND [command options] [COMMAND_ARGS...]]
+
+queries/results output (to stdout):
+{key}[{separator}{value1[SEPARATOR{value2}..[SEPARATOR{valueN}]]}]
+
+Notes:
+
+ * the field separator is the tab character for now;
+ * the record separator is the newline character;
+ * for values that could not be computed/retrieved, only the key
+    would be written to stdout;
+ * some "TYPE"s could have a special value to indicate that the
+    value could not be retrieved;
+ * once a value that could produce "[multiple lines]" is requrested,
+    no other types can be requested (because the output format
+    cannot currently cope with this);
+ * errors are written to stderr;
+
+* general options:
+
+ TODO: document
+
+-v
+    include the COMMAND as the first field on each output record
+
+* command options:
+
+ TODO: document
+
+-h
+    this help message.
+'
+	[ -n "$1" ] && exit "$1"
+	return 0
+}
+# prev: v1: prgname="${VCSHGLOBAL_LASTPRGPATHNAME##*/}"
+
+# query output functions {{{
+
+# args: FORMAT_ID
+#  * 's' | 'single'
+#  * 'm' | 'multi'
+#  MAYBE: LATER: support creating JSON:
+#   {
+#     "key1": "value1",
+#     "key2": ["value2_1", "value2_2"], // maybe just use this
+#   }
+#  MAYBE: conditionally write out the command_id as the first key:
+#   {
+#     "query": {
+#       "query_1": ["result1_1", "result1_2"]
+#     }
+#   }
+#
+# notes:
+#  * if a record has already been written, changing the format is not allowed;
+#
+# side_effects:
+#  * sets the environment variable 'g_record_format' to one of the following
+#    values:
+#      * 'single';
+#      * 'multi';
+#
+f_set_record_format()
+{
+	l_set_record_format_fmtid="$1"
+	[ -n "${l_set_record_format_fmtid}" ] \
+		|| f_vcshglobal_abort "f_set_record_format():" \
+				"missing format_id specifier"
+
+	case "${l_set_record_format_fmtid}" in
+		s | single )
+			l_set_record_format_fmtid='single' ;;
+		m | multi )
+			l_set_record_format_fmtid='multi' ;;
+		* )
+			f_vcshglobal_abort "f_set_record_format():" \
+				"invalid format_id: '${l_set_record_format_fmtid}'"
+			;;
+	esac
+
+	if [ -z "${g_last_record_processed_key}" ] ; then
+		# changing the format when no records have been written is allowed.
+		g_record_format="${l_set_record_format_fmtid}"
+	else
+		# make sure the caller is not intending on changing the format now.
+		[ "${l_set_record_format_fmtid}" = "${g_record_format}" ] \
+			|| f_vcshglobal_abort "f_set_record_format():" \
+				"format_id already specified." \
+				"existing format_id='${g_record_format}';" \
+				"specified format_id='${l_set_record_format_fmtid}';"
+	fi
+
+	return 0
+}
+
+# args: fields (including the 'key' as the first one)
+# global variables: g_record_format
+# ref: idea from 'ev_scm_getinfo'
+f_send_record()
+{
+	#? [ $# -gt 0 -a -n "$1" ]
+	[ -n "$1" ] || f_vcshglobal_abort "f_send_record(): invalid args: no key specified"
+	l_send_record_reckey="$1"
+
+	unset l_send_record_fmtstr
+
+	# TODO: validate that this function is not called more than once when the
+	# record format is "single".
+	# get rid of the first field when the format requires it.
+	[ "${g_record_format}" = "single" ] && shift
+	case "${g_record_format}" in
+		single )
+			# for now, we allow multiple records with the same key, just in
+			# case.
+			[ -z "${g_last_record_processed_key}" \
+					-o "${g_last_record_processed_key}" = "${l_send_record_reckey}" ] \
+				|| f_vcshglobal_abort "record format only allows a single record to be written (or more than one if the key is identical)." \
+					"key_already_processed='${g_last_record_processed_key}';" \
+					"key_now='${l_send_record_reckey}';" \
+					# end
+			# TODO: determine whether we should strip the key from the
+			# resulting output, or if we rely on our callers (such as
+			# f_cmdhandler_send_record()) to do the stripping themselves.
+			#? shift
+			;;
+	esac
+	g_last_record_processed_key="${l_send_record_reckey}"
+
+	for l_send_record_argnow in "$@"
+	do
+		# we only use the fact that we will iterate once per arg, so it will be
+		# exactly '$#'.
+		l_send_record_fmtstr="${l_send_record_fmtstr}${l_send_record_fmtstr:+\\t}%s"
+	done
+	if [ -n "${l_send_record_fmtstr}" ] ; then
+		printf "${l_send_record_fmtstr}\\n" "$@"
+	fi
+
+	unset \
+		l_send_record_fmtstr \
+		l_send_record_argnow \
+		l_send_record_reckey \
+		# end
+	return 0
+}
+
+# MAYBE: create another version, too: f_cmdhandler_send_record()
+f_cmdhandler_send_record()
+{
+	[ -n "${g_current_cmdid}" ] \
+		|| f_vcshglobal_abort "f_cmdhandler_send_record(): invalid context: no current command id (g_current_cmdid)"
+	[ -n "$1" ] \
+		|| f_vcshglobal_abort "f_cmdhandler_send_record(): invalid args: no key specified"
+	f_send_record ${g_verbose_flag:+"${g_current_cmdid}"} "$@"
+}
+
+# }}}
+
+# defaults {{{
+unset \
+	global_debug_flag \
+	g_verbose_flag \
+	\
+	g_record_format \
+	g_current_cmdid \
+	g_last_record_processed_key \
+	# end
+
+f_set_record_format 'multi'
+# }}}
+
+# getopts {{{
+while getopts 'vDh' arg
+do
+	case "${arg}" in
+		v)	g_verbose_flag=1 ;;
+		D)	global_debug_flag=1 ;;
+
+		h)	f_help 0 ;;
+		?)	f_help 1 1>&2 ;;
+	esac
+done
+shift $(($OPTIND - 1)) ; OPTIND=1
+# }}}
+
+# if called without a command: error message, help and abort {{{
+[ $# -gt 0 ] \
+	|| f_vcshglobal_error "please specify a COMMAND" \
+	|| f_help 1
+# }}}
+
+# TEST: DEBUG: f_send_record somekey field1 field2
+#f_send_record somekey field1 field2
+
+# command processing {{{
+
+# MAYBE: create: f_cmdhandler_send_record() (see f_send_record())
+
+# note: uses environment variable 'g_current_cmdid'.
+f_cmdhandler_abort()
+{
+	f_vcshglobal_abort "[cmd='${g_current_cmdid}']" "$@"
+}
+
+# command handlers {{{
+#
+# args: [command options] [COMMAND_ARGS...]
+# notes:
+#  * command handlers can use 'getops(1)' without further initialisations;
+#    * no need to perform 'getops(1)' "cleanup" operations either;
+#
+
+f_handlecmd_query()
+{
+	l_handlecmd_query_rc=0
+
+	# defaults
+	l_handlecmd_query_single=0
+
+	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
+		while getopts '1' l_handlecmd_query_arg
+		do
+			case "${l_handlecmd_query_arg}" in
+				1)	l_handlecmd_query_single=1 ;;
+
+				?)	f_cmdhandler_abort "invalid option" ;;
+			esac
+		done
+		shift $(($OPTIND - 1)) ; OPTIND=1
+	fi
+
+	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
+		l_handlecmd_query_gotquery=0
+
+		# FIXME: specifying the global flag '-v' and the local '-1' produces invalid output:
+		#  example: 
+		#   $ bin/vcshglobalctl -v query -1 list-queries
+		#   list-queries    list-queries    test-1
+		#
+		#   (the command 'query' is not displayed ('-v' requests that to
+		#   happen), and the 'list-queries' query id is shown, despite the
+		#   '-1')
+		#
+		# MAYBE: move (some of) this logic/option processing to
+		# f_proc_command()
+		if [ ${l_handlecmd_query_single} -ne 0 ] ; then
+			# prev: v1: g_record_format="single"
+			f_set_record_format 'single'
+		else
+			# prev: v1: g_record_format="multi"
+			f_set_record_format 'multi'
+		fi
+
+		while [ $# -gt 0 ]
+		do
+			l_handlecmd_query_queryid="$1"
+			shift
+
+			[ ${l_handlecmd_query_single} -eq 0 \
+					-o ${l_handlecmd_query_gotquery} -eq 0 ] \
+				|| f_cmdhandler_abort "only one query is supported when -1 is specified. query='${l_handlecmd_query_queryid}'; remaining args='$*'"
+
+			case "${l_handlecmd_query_queryid}" in
+				list-queries )
+					# for now: manually maintained
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						'list-queries' \
+						'test-1' \
+						# end
+					;;
+
+				# TODO: implement
+
+				# TODO: remove (TESTING)
+				'test-1' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						'remaining args:' "$@"
+					;;
+
+				* ) f_cmdhandler_abort "invalid query: '${l_handlecmd_query_queryid}'" ;;
+			esac
+
+			l_handlecmd_query_gotquery=1
+		done
+		unset l_handlecmd_query_queryid
+
+		if [ ${l_handlecmd_query_rc} -eq 0 \
+				-a ${l_handlecmd_query_gotquery} -eq 0 ] ; then
+			f_cmdhandler_abort "no query has been processed/specified"
+		fi
+	fi
+
+	unset \
+		l_handlecmd_query_arg \
+		l_handlecmd_query_single \
+		# end
+	return ${l_handlecmd_query_rc}
+}
+
+# }}}
+
+# args: COMMAND [command options] [COMMAND_ARGS...]
+f_proc_command()
+{
+	l_proc_command_cmdid="$1" \
+		&& shift \
+		|| f_error "no command specified" \
+		|| return $?
+
+	l_proc_command_rc=0
+
+	if [ ${l_proc_command_rc} -eq 0 ] ; then
+		# 'getopts(1)' environment reset
+		OPTIND=1
+		g_current_cmdid="${l_proc_command_cmdid}"
+
+		# MAYBE: support multiple commands here and in the global scope, by
+		# using a separator (say, "::").
+		case "${l_proc_command_cmdid}" in
+			list-commands )
+				f_cmdhandler_send_record \
+						'list-commands' \
+						'query' \
+					|| l_proc_command_rc=$?
+				;;
+
+			query )
+				f_handlecmd_query "$@" \
+					|| l_proc_command_rc=$?
+				;;
+
+			* )
+				f_vcshglobal_abort "invalid command id: '${l_proc_command_cmdid}'"
+				;;
+		esac
+
+		unset g_current_cmdid
+		# 'getopts(1)' environment reset
+		OPTIND=1
+	fi
+
+	return ${l_proc_command_rc}
+}
+
+f_proc_command "$@"
+# }}}
+
+#f_vcshglobal_abort "FIXME: implement"
+
+# TODO: implement queries that would be useful from 'vcshglobaltools' repo programs:
+#  TODO: get one/serveral specified/all variables
+#   FIXME: rationalise variable names first
+#   MAYBE: output shell code in the format 'var=value' for each variable (where single and/or double quotes are permitted)
+
+# IDEA: in programs belonging to the 'vcshglobaltools' repo:
+#  TODO: have a script fulfilling the same role that 'vcshglobal-sh-init' has in this repo
+#   TODO: create a function to ease the querying for information from 'vcshglobalctl'
+
+# vim600: set filetype=sh fileformat=unix:
+# vim: set noexpandtab:
+# vi: set autoindent tabstop=4 shiftwidth=4:
