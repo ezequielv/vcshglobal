@@ -283,9 +283,6 @@ f_cmdhandler_proccommonopt()
 			f_set_record_format 'single' \
 				|| f_cmdhandler_abort "failed to set" \
 						"single-record output format"
-			# prev: v1: [ "${g_record_format}" = 'single' ] \
-			# prev: v1: 	|| f_cmdhandler_abort "specifying '-1' when" \
-			# prev: v1: 			"displaying multiple records is not supported"
 			[ -z "${g_verbose_flag}" ] \
 				|| f_vcshglobal_abort "specifying '-v' and '-1' together is not supported"
 			;;
