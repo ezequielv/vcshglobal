@@ -365,8 +365,6 @@ f_proc_command()
 f_proc_command "$@"
 # }}}
 
-#f_vcshglobal_abort "FIXME: implement"
-
 # TODO: implement queries that would be useful from 'vcshglobaltools' repo programs:
 #  TODO: get one/serveral specified/all variables
 #   FIXME: rationalise variable names first
