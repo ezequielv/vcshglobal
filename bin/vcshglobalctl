@@ -31,6 +31,15 @@ Notes:
     no other types can be requested (because the output format
     cannot currently cope with this);
  * errors are written to stderr;
+ * the level-1 COMMAND "'"${g_cmdkey_getallavailable}"'" returns a list of all
+    the available commands, in machine-parsable format (see above)
+    example:
+     $ '"${VCSHGLOBAL_LASTPRGPATHNAME}"' '"${g_cmdkey_getallavailable}"'
+ * some commands also support the COMMAND "'"${g_cmdkey_getallavailable}"'",
+    which produces a list of available sub-commands/keys available for that
+    COMMAND.
+    example:
+     $ '"${VCSHGLOBAL_LASTPRGPATHNAME}"' query -1 '"${g_cmdkey_getallavailable}"'
 
 * general options:
 
@@ -44,6 +53,9 @@ Notes:
              all the fields are command-specific.
     note: this is mutually exclusive with "-1";
 
+-h
+    this help message.
+
 * command options:
 
 -1
@@ -52,8 +64,6 @@ Notes:
     note: this forces the "-1" flag;
     note: this is incompatible with the global "-v" flag;
 
--h
-    this help message.
 '
 	[ -n "$1" ] && exit "$1"
 	return 0
@@ -192,6 +202,7 @@ unset \
 	# end
 
 f_set_record_format 'multi'
+g_cmdkey_getallavailable='keys-available'
 # }}}
 
 # getopts {{{
@@ -322,10 +333,10 @@ f_handlecmd_query()
 				|| f_cmdhandler_abort "only one query is supported when -1 is specified. query='${l_handlecmd_query_queryid}'; remaining args='$*'"
 
 			case "${l_handlecmd_query_queryid}" in
-				list-queries )
+				"${g_cmdkey_getallavailable}" )
 					# for now: manually maintained
 					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
-						'list-queries' \
+						"${g_cmdkey_getallavailable}" \
 						'test-1' \
 						# end
 					;;
@@ -380,9 +391,10 @@ f_proc_command()
 		# MAYBE: support multiple commands here and in the global scope, by
 		# using a separator (say, "::").
 		case "${l_proc_command_cmdid}" in
-			list-commands )
+			# prev: list-commands )
+			"${g_cmdkey_getallavailable}" )
 				f_cmdhandler_send_record \
-						'list-commands' \
+						"${g_cmdkey_getallavailable}" \
 						'query' \
 					|| l_proc_command_rc=$?
 				;;
