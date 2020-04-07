@@ -19,8 +19,6 @@ f_vcshglobal_cfg_findcfgfile()
 		|| return 1
 
 	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE
-	# prev: v1: ${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
-	#
 	for l_vcshglobal_cfg_findcfgfile_pathname in \
 		${l_vcshglobal_cfg_findcfgfile_basename:+"/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
 		${l_vcshglobal_cfg_findcfgfile_basename:+"/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
@@ -46,30 +44,10 @@ f_vcshglobal_cfg_findcfgfile()
 
 # VCSHGLOBAL_VCSH_CONFIG_FILE {{{
 if [ -z "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] ; then
-	#? [ -n "${VCSHGLOBAL_OPT_BASEDIR}" ] \
-	#? 	|| return 1
-
-	# prev: v1: : "${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:=vcshglobal_vcshconfig}"
-
 	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE {{{
-	# prev: v1: for t_pathname in \
-	# prev: v1: 	${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:+"/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
-	# prev: v1: 	${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:+"/usr/local/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
-	# prev: v1: 	${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
-	# prev: v1: 	${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
-	# prev: v1: 	${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME}"} \
-	# prev: v1: 	# end
-	# prev: v1: do
-	# prev: v1: 	[ -n "${t_pathname}" -a -f "${t_pathname}" -a -r "${t_pathname}" ] \
-	# prev: v1: 		|| continue
-	# prev: v1: 	VCSHGLOBAL_VCSH_CONFIG_FILE="${t_pathname}" \
-	# prev: v1: 		&& break
-	# prev: v1: done
 	f_vcshglobal_cfg_findcfgfile \
 			"${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:=vcshglobal_vcshconfig}" \
 		|| return $?
-	# prev: v2: [ -n "${g_vcshglobal_cfg_cfgfile}" ] \
-	# prev: v2: 	&& VCSHGLOBAL_VCSH_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
 	VCSHGLOBAL_VCSH_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
 	# }}}
 fi
@@ -104,11 +82,6 @@ fi
 # }}}
 
 # VCSHGLOBAL_CONFIG_BASEDIR {{{
-# prev: v1: : "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
-# prev: v1: [ -n "${VCSHGLOBAL_CONFIG_BASEDIR}" -a -d "${VCSHGLOBAL_CONFIG_BASEDIR}/" ] \
-# prev: v1: 	|| f_vcshglobal_vcshconfig_abort "empty value/dir not found for VCSHGLOBAL_CONFIG_BASEDIR: '${VCSHGLOBAL_CONFIG_BASEDIR}'" \
-# prev: v1: 	|| return $?
-# prev: v1: export VCSHGLOBAL_CONFIG_BASEDIR
 : "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
 [ -n "${VCSHGLOBAL_CONFIG_BASEDIR}" ] \
 	&& export VCSHGLOBAL_CONFIG_BASEDIR \
