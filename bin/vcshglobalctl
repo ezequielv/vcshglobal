@@ -7,7 +7,7 @@ VCSHGLOBAL_LASTPRGPATHNAME="$0" \
 	|| {
 		rc=$?
 		echo "${0}: ERROR: failed to source local '.vcshglobal-sh-init' file on same directory (rc=$rc)" 1>&2
-		exit rc
+		exit $rc
 	}
 # }}}
 
