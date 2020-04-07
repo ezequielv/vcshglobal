@@ -61,7 +61,7 @@ Notes:
 -1
     output a single record without its command-specific key field (which is the
     first).
-    note: this forces the "-1" flag;
+    note: this forces the global "-1" flag;
     note: this is incompatible with the global "-v" flag;
 
 '
