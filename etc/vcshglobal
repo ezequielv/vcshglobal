@@ -20,12 +20,12 @@ f_vcshglobal_cfg_findcfgfile()
 
 	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE
 	for l_vcshglobal_cfg_findcfgfile_pathname in \
-		${l_vcshglobal_cfg_findcfgfile_basename:+"/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
-		${l_vcshglobal_cfg_findcfgfile_basename:+"/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
-		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
-		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
-		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
-		${l_vcshglobal_cfg_findcfgfile_basename:+${VCSHGLOBAL_OPT_BASEDIR:+"${VCSHGLOBAL_OPT_BASEDIR}/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"}} \
+		"/etc/${l_vcshglobal_cfg_findcfgfile_basename}" \
+		"/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}" \
+		${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_OPT_BASEDIR:+"${VCSHGLOBAL_OPT_BASEDIR}/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
 		# end
 	do
 		[ -n "${l_vcshglobal_cfg_findcfgfile_pathname}" -a -f "${l_vcshglobal_cfg_findcfgfile_pathname}" -a -r "${l_vcshglobal_cfg_findcfgfile_pathname}" ] \
