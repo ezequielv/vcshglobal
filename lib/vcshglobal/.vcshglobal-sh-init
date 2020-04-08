@@ -144,6 +144,7 @@ if [ -z "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
 		esac
 		[ -n "${t_pathname}" -a -f "${t_pathname}" -a -r "${t_pathname}" ] \
 			&& VCSHGLOBAL_OPTION_CONFIG="${t_pathname}" \
+			&& break \
 			|| continue
 	done
 	[ -n "${VCSHGLOBAL_OPTION_CONFIG}" ] \
