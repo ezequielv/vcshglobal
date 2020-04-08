@@ -107,14 +107,8 @@ export VCSHGLOBAL_OPT_ROOTDIR
 export VCSHGLOBAL_OPT_CFGDIR
 # }}}
 
-# prev: v1: # load shell functions {{{
-# prev: v1: . "${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/lib/vcshglobal/sh-functions"
-# prev: v1: # }}}
-
 # MAYBE: move the code below to a file sourced from/a function inside the 'functions' script
 
-#? : "${VCSHGLOBAL_OPTION_CONFIG_SYS:=${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/vcshglobal}"
-#? : "${VCSHGLOBAL_OPTION_CONFIG_USER:=/usr/local/etc/vcshglobal}"
 # load the first config file from a list of alternatives {{{
 if [ -z "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
 	for t_stageid in \
