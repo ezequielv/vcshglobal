@@ -58,7 +58,7 @@ done
 	|| f_vcshglobal_vcshconfig_abort "could not calculate a value for vcsh_var_vcshroot" \
 	|| return $?
 
-VCSH_BASE="${VCSHGLOBAL_OPT_BASEDIR}"
+VCSH_BASE="${VCSHGLOBAL_VG_BASE_D}"
 VCSH_REPO_D="${vcsh_var_vcshroot}/repo.d"
 VCSH_HOOK_D="${vcsh_opt_vcshroot}/hooks/hooks-enabled"
 VCSH_OVERLAY_D="${vcsh_opt_vcshroot}/overlays/overlays-enabled"
@@ -86,19 +86,19 @@ if [ -z "${VCSH_MODULES_SOURCEPATH}" -a "${VCSH_MODULES_DETECT:-1}" -ne 0 ] ; th
 		unset t_dirnow
 		case "${t_stageid}" in
 			stageid_vcshglobalmodsrcpath_relpath_prgasis | stageid_vcshglobalmodsrcpath_relpath_prglinkdst )
-				# DOC: uses VCSHGLOBAL_LASTPRGPATHNAME (guaranteed to be
+				# DOC: uses VCSHGLOBAL_INT_LASTPRGPATHNAME (guaranteed to be
 				# non-empty, but we code defensively here).
-				[ -n "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
+				[ -n "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
 					|| continue
 
 				case "${t_stageid}" in
 					stageid_vcshglobalmodsrcpath_relpath_prgasis )
-						t_prgnow="${VCSHGLOBAL_LASTPRGPATHNAME}"
+						t_prgnow="${VCSHGLOBAL_INT_LASTPRGPATHNAME}"
 						;;
 
 					stageid_vcshglobalmodsrcpath_relpath_prglinkdst )
 						unset t_prgnow
-						t_prgnow=`readlink -f "${VCSHGLOBAL_LASTPRGPATHNAME}" 2> /dev/null` \
+						t_prgnow=`readlink -f "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" 2> /dev/null` \
 							&& [ -n "${t_prgnow}" ] \
 							|| continue \
 							# end

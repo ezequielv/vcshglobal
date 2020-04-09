@@ -2,8 +2,8 @@
 set -e
 
 # boilerplate code for scripts under {vcshglobal}/bin {{{
-VCSHGLOBAL_LASTPRGPATHNAME="$0" \
-	&& . "${VCSHGLOBAL_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
+VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
+	&& . "${VCSHGLOBAL_INT_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
 	|| {
 		rc=$?
 		echo "${0}: ERROR: failed to source local '.vcshglobal-sh-init' file on same directory (rc=$rc)" 1>&2
@@ -14,7 +14,7 @@ VCSHGLOBAL_LASTPRGPATHNAME="$0" \
 # syntax: f_help [exit_code]
 f_help()
 {
-	echo "${VCSHGLOBAL_LASTPRGPATHNAME}" '[general options] [--] [COMMAND [command options] [COMMAND_ARGS...]]
+	echo "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" '[general options] [--] [COMMAND [command options] [COMMAND_ARGS...]]
 
 queries/results output (to stdout):
 {key}[{separator}{value1[SEPARATOR{value2}..[SEPARATOR{valueN}]]}]
@@ -34,12 +34,12 @@ Notes:
  * the level-1 COMMAND "'"${g_cmdkey_getallavailable}"'" returns a list of all
     the available commands, in machine-parsable format (see above)
     example:
-     $ '"${VCSHGLOBAL_LASTPRGPATHNAME}"' '"${g_cmdkey_getallavailable}"'
+     $ '"${VCSHGLOBAL_INT_LASTPRGPATHNAME}"' '"${g_cmdkey_getallavailable}"'
  * some commands also support the COMMAND "'"${g_cmdkey_getallavailable}"'",
     which produces a list of available sub-commands/keys available for that
     COMMAND.
     example:
-     $ '"${VCSHGLOBAL_LASTPRGPATHNAME}"' query -1 '"${g_cmdkey_getallavailable}"'
+     $ '"${VCSHGLOBAL_INT_LASTPRGPATHNAME}"' query -1 '"${g_cmdkey_getallavailable}"'
 
 * general options:
 

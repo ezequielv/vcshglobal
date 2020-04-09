@@ -8,8 +8,8 @@ set -e
 [ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (initial): '$@'" 1>&2
 
 # boilerplate code for scripts under {vcshglobal}/bin {{{
-VCSHGLOBAL_LASTPRGPATHNAME="$0" \
-	&& . "${VCSHGLOBAL_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
+VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
+	&& . "${VCSHGLOBAL_INT_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
 	|| {
 		rc=$?
 		echo "${0}: ERROR: failed to source local '.vcshglobal-sh-init' file on same directory (rc=$rc)" 1>&2
@@ -21,7 +21,7 @@ VCSHGLOBAL_LASTPRGPATHNAME="$0" \
 
 # TODO: move to the "functions" file {{{
 unset \
-	VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG \
+	VCSHGLOBAL_VCSH_INT_OPTIONS_GENERATED_FLAG \
 	# end
 
 # args: [MODE]
@@ -34,12 +34,12 @@ f_process_vcsh_vars()
 		f | forced )
 			# MAYBE: leave this some/all of these alone?
 			unset \
-				VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE \
+				VCSHGLOBAL_VCSH_INT_OPTIONS_GROUP_CFGFILE \
 				# end
 			;;
 
 		c | cond )
-			[ -z "${VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG}" ] \
+			[ -z "${VCSHGLOBAL_VCSH_INT_OPTIONS_GENERATED_FLAG}" ] \
 				|| return 0
 			;;
 
@@ -48,31 +48,31 @@ f_process_vcsh_vars()
 			return 1 ;;
 	esac
 
-	if [ -z "${VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE}" -a -n "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] ; then
-		VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE="-c ${VCSHGLOBAL_VCSH_CONFIG_FILE}"
+	if [ -z "${VCSHGLOBAL_VCSH_INT_OPTIONS_GROUP_CFGFILE}" -a -n "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] ; then
+		VCSHGLOBAL_VCSH_INT_OPTIONS_GROUP_CFGFILE="-c ${VCSHGLOBAL_VCSH_CONFIG_FILE}"
 	fi
-	VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG=1
+	VCSHGLOBAL_VCSH_INT_OPTIONS_GENERATED_FLAG=1
 	# always regenerate these variables form their parts
-	VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL="${VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE}"
-	VCSHGLOBAL_VCSH_OPTIONS_POST_ALL=""
+	VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL="${VCSHGLOBAL_VCSH_INT_OPTIONS_GROUP_CFGFILE}"
+	VCSHGLOBAL_VCSH_INT_OPTIONS_POST_ALL=""
 }
 
 f_vcsh_run()
 {
 	f_process_vcsh_vars c || return $?
 
-	#? vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@" ${VCSHGLOBAL_VCSH_OPTIONS_POST_ALL}
-	vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@"
+	#? vcsh ${VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL} "$@" ${VCSHGLOBAL_VCSH_INT_OPTIONS_POST_ALL}
+	vcsh ${VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL} "$@"
 }
 
 f_vcsh_exec()
 {
 	f_process_vcsh_vars c || return $?
 
-	[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: f_vcsh_exec(): args (about to exec vcsh): '${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} $@'" 1>&2
+	[ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: f_vcsh_exec(): args (about to exec vcsh): '${VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL} $@'" 1>&2
 
-	#? exec vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@" ${VCSHGLOBAL_VCSH_OPTIONS_POST_ALL}
-	exec vcsh ${VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL} "$@"
+	#? exec vcsh ${VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL} "$@" ${VCSHGLOBAL_VCSH_INT_OPTIONS_POST_ALL}
+	exec vcsh ${VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL} "$@"
 }
 
 # }}}

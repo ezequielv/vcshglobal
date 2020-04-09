@@ -22,10 +22,10 @@ f_vcshglobal_cfg_findcfgfile()
 	for l_vcshglobal_cfg_findcfgfile_pathname in \
 		"/etc/${l_vcshglobal_cfg_findcfgfile_basename}" \
 		"/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}" \
-		${VCSHGLOBAL_OPT_CFGDIR:+"${VCSHGLOBAL_OPT_CFGDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
-		${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
-		${VCSHGLOBAL_OPT_ROOTDIR:+"${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
-		${VCSHGLOBAL_OPT_BASEDIR:+"${VCSHGLOBAL_OPT_BASEDIR}/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_CFG_D:+"${VCSHGLOBAL_VG_CFG_D}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_FSSRC_D:+"${VCSHGLOBAL_VG_FSSRC_D}/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_FSSRC_D:+"${VCSHGLOBAL_VG_FSSRC_D}/usr/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_BASE_D:+"${VCSHGLOBAL_VG_BASE_D}/local/etc/${l_vcshglobal_cfg_findcfgfile_basename}"} \
 		# end
 	do
 		[ -n "${l_vcshglobal_cfg_findcfgfile_pathname}" -a -f "${l_vcshglobal_cfg_findcfgfile_pathname}" -a -r "${l_vcshglobal_cfg_findcfgfile_pathname}" ] \
@@ -57,32 +57,32 @@ fi
 	# end
 # }}}
 
-# VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE {{{
-if [ -z "${VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE}" ] ; then
+# VCSHGLOBAL_MR_CONFIG_FILE {{{
+if [ -z "${VCSHGLOBAL_MR_CONFIG_FILE}" ] ; then
 	f_vcshglobal_cfg_findcfgfile \
-			"${VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_DETECT_BASENAME:=vcshglobal_mrconfig}" \
+			"${VCSHGLOBAL_MR_CONFIG_DETECT_BASENAME:=vcshglobal_mrconfig}" \
 		|| return $?
-	VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
+	VCSHGLOBAL_MR_CONFIG_FILE="${g_vcshglobal_cfg_cfgfile}"
 fi
 
-[ -n "${VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE}" ] \
-	&& export VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE \
+[ -n "${VCSHGLOBAL_MR_CONFIG_FILE}" ] \
+	&& export VCSHGLOBAL_MR_CONFIG_FILE \
 	# end
 # }}}
 
-# VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR {{{
+# VCSHGLOBAL_MR_TOP_D {{{
 # MAYBE: try to use one of several possibilities, based on the variables we've got so far.
-if [ -z "${VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR}" -a -n "${VCSHGLOBAL_OPT_BASEDIR}" ] ; then
-	VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR="${VCSHGLOBAL_OPT_BASEDIR}"
+if [ -z "${VCSHGLOBAL_MR_TOP_D}" -a -n "${VCSHGLOBAL_VG_BASE_D}" ] ; then
+	VCSHGLOBAL_MR_TOP_D="${VCSHGLOBAL_VG_BASE_D}"
 fi
 
-[ -n "${VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR}" ] \
-	&& export VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR \
+[ -n "${VCSHGLOBAL_MR_TOP_D}" ] \
+	&& export VCSHGLOBAL_MR_TOP_D \
 	# end
 # }}}
 
 # VCSHGLOBAL_CONFIG_BASEDIR {{{
-: "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
+: "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_VG_BASE_D}/config}"
 [ -n "${VCSHGLOBAL_CONFIG_BASEDIR}" ] \
 	&& export VCSHGLOBAL_CONFIG_BASEDIR \
 	# end

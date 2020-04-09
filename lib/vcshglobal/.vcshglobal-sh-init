@@ -1,9 +1,59 @@
 # shell script
 
+# done: update/rename all of these variable names:
+#  [.] VCSHGLOBAL_CONFIG_FILE -> VCSHGLOBAL_VG_CONFIG_FILE (no: VCSHGLOBAL_MAIN_CONFIG_FILE)
+#
+#  [.] VCSHGLOBAL_OPTION_CONFIG
+#   -> [.] change logic to use the new var [.] VCSHGLOBAL_VG_CONFIG_FILE (or first use [.] VCSHGLOBAL_CONFIG_FILE, and then rename everything together)
+#
+#  [.] VCSHGLOBAL_OPT_BASEDIR
+#    -> VCSHGLOBAL_VG_BASE_D
+#  [.] VCSHGLOBAL_OPT_CFGDIR
+#    -> VCSHGLOBAL_VG_CFG_D
+#  [.] VCSHGLOBAL_OPT_ROOTDIR
+#    -> VCSHGLOBAL_VG_FSSRC_D
+#
+#  [.] VCSHGLOBAL_LASTPRGPATHNAME
+#    -> VCSHGLOBAL_INT_LASTPRGPATHNAME
+#   -> *_INT_*
+#
+#  VCSHGLOBAL_VCSH_CONFIG_FILE
+#
+#  [.] VCSHGLOBAL_VCSH_OPTIONS_GENERATED_FLAG
+#    -> VCSHGLOBAL_VCSH_INT_OPTIONS_GENERATED_FLAG
+#  [.] VCSHGLOBAL_VCSH_OPTIONS_GROUP_CFGFILE
+#    -> VCSHGLOBAL_VCSH_INT_OPTIONS_GROUP_CFGFILE
+#  [.] VCSHGLOBAL_VCSH_OPTIONS_POST_ALL
+#    -> VCSHGLOBAL_VCSH_INT_OPTIONS_POST_ALL
+#  [.] VCSHGLOBAL_VCSH_OPTIONS_PRE_ALL
+#    -> VCSHGLOBAL_VCSH_INT_OPTIONS_PRE_ALL
+#   -> *_INT_OPTIONS_*
+#
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_FILE
+#    -> VCSHGLOBAL_MR_CONFIG_FILE
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_CONFIG_DETECT_BASENAME
+#    -> VCSHGLOBAL_MR_CONFIG_DETECT_BASENAME
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_TOPDIR
+#    -> VCSHGLOBAL_MR_TOP_D
+#   -> *_MR_*
+#
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_OPTIONS_GENERATED_FLAG
+#    -> VCSHGLOBAL_MR_INT_OPTIONS_GENERATED_FLAG
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_OPTIONS_GROUP_CFGFILE
+#    -> VCSHGLOBAL_MR_INT_OPTIONS_GROUP_CFGFILE
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_OPTIONS_GROUP_TOPMOSTDIR
+#    -> VCSHGLOBAL_MR_INT_OPTIONS_GROUP_TOPMOSTDIR
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_OPTIONS_POST_ALL
+#    -> VCSHGLOBAL_MR_INT_OPTIONS_POST_ALL
+#  [.] VCSHGLOBAL_MRVCSHGLOBAL_OPTIONS_PRE_ALL
+#    -> VCSHGLOBAL_MR_INT_OPTIONS_PRE_ALL
+#   -> *_MR_INT_OPTIONS_*
+#
+
 # basic functions {{{
 f_vcshglobal_echo_to_stdout()
 {
-	echo "${VCSHGLOBAL_LASTPRGPATHNAME:-$0}:" "$@" 1>&2
+	echo "${VCSHGLOBAL_INT_LASTPRGPATHNAME:-$0}:" "$@" 1>&2
 }
 
 f_vcshglobal_error()
@@ -20,18 +70,18 @@ f_vcshglobal_abort()
 # }}}
 
 # initial validation {{{
-[ -n "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
-	|| f_vcshglobal_abort "required variable VCSHGLOBAL_LASTPRGPATHNAME has not been set by the main program script"
-[ -f "${VCSHGLOBAL_LASTPRGPATHNAME}" -a -x "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
-	|| f_vcshglobal_abort "VCSHGLOBAL_LASTPRGPATHNAME ('${VCSHGLOBAL_LASTPRGPATHNAME}') does not seem to be a valid executable"
+[ -n "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
+	|| f_vcshglobal_abort "required variable VCSHGLOBAL_INT_LASTPRGPATHNAME has not been set by the main program script"
+[ -f "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" -a -x "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
+	|| f_vcshglobal_abort "VCSHGLOBAL_INT_LASTPRGPATHNAME ('${VCSHGLOBAL_INT_LASTPRGPATHNAME}') does not seem to be a valid executable"
 # }}}
 
 # set environment for child processes -- step 1 {{{
-export VCSHGLOBAL_LASTPRGPATHNAME
+export VCSHGLOBAL_INT_LASTPRGPATHNAME
 # }}}
 
-# get value for VCSHGLOBAL_OPT_BASEDIR {{{
-if [ -z "${VCSHGLOBAL_OPT_BASEDIR}" ] ; then
+# get value for VCSHGLOBAL_VG_BASE_D {{{
+if [ -z "${VCSHGLOBAL_VG_BASE_D}" ] ; then
 	unset t_dirnow
 
 	for t_stageid in \
@@ -43,17 +93,17 @@ if [ -z "${VCSHGLOBAL_OPT_BASEDIR}" ] ; then
 		unset t_dirnow
 		case "${t_stageid}" in
 			stageid_vcshglobalbasedir_prgasis | stageid_vcshglobalbasedir_prglinkdst )
-				[ -n "${VCSHGLOBAL_LASTPRGPATHNAME}" ] \
+				[ -n "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
 					|| continue
 
 				case "${t_stageid}" in
 					stageid_vcshglobalbasedir_prgasis )
-						t_prgnow="${VCSHGLOBAL_LASTPRGPATHNAME}"
+						t_prgnow="${VCSHGLOBAL_INT_LASTPRGPATHNAME}"
 						;;
 
 					stageid_vcshglobalbasedir_prglinkdst )
 						unset t_prgnow
-						t_prgnow=`readlink -f "${VCSHGLOBAL_LASTPRGPATHNAME}" 2> /dev/null` \
+						t_prgnow=`readlink -f "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" 2> /dev/null` \
 							&& [ -n "${t_prgnow}" ] \
 							|| continue \
 							# end
@@ -84,35 +134,35 @@ if [ -z "${VCSHGLOBAL_OPT_BASEDIR}" ] ; then
 			|| continue \
 			# end
 
-		VCSHGLOBAL_OPT_BASEDIR="${t_dirnow}"
+		VCSHGLOBAL_VG_BASE_D="${t_dirnow}"
 		[ -n "${VCSH_DEBUG}" ] \
-			&& echo "[DEBUG] found value for VCSHGLOBAL_OPT_BASEDIR='${VCSHGLOBAL_OPT_BASEDIR}' in stageid '${t_stageid}'" 1>&2 \
+			&& echo "[DEBUG] found value for VCSHGLOBAL_VG_BASE_D='${VCSHGLOBAL_VG_BASE_D}' in stageid '${t_stageid}'" 1>&2 \
 			|| true
 		break
 	done
-	[ -n "${VCSHGLOBAL_OPT_BASEDIR}" ] \
+	[ -n "${VCSHGLOBAL_VG_BASE_D}" ] \
 		|| {
-			echo "${VCSHGLOBAL_LASTPRGPATHNAME}: ERROR: could not work out a valid value for VCSHGLOBAL_OPT_BASEDIR" 1>&2
+			echo "${VCSHGLOBAL_INT_LASTPRGPATHNAME}: ERROR: could not work out a valid value for VCSHGLOBAL_VG_BASE_D" 1>&2
 			exit 1
 		}
-	export VCSHGLOBAL_OPT_BASEDIR
+	export VCSHGLOBAL_VG_BASE_D
 fi
 # }}}
 
 # set up some more defaults {{{
-: "${VCSHGLOBAL_OPT_ROOTDIR:=${VCSHGLOBAL_OPT_BASEDIR}/rootdir}"
-export VCSHGLOBAL_OPT_ROOTDIR
+: "${VCSHGLOBAL_VG_FSSRC_D:=${VCSHGLOBAL_VG_BASE_D}/rootdir}"
+export VCSHGLOBAL_VG_FSSRC_D
 
-: "${VCSHGLOBAL_OPT_CFGDIR:=${VCSHGLOBAL_OPT_BASEDIR}/config}"
-export VCSHGLOBAL_OPT_CFGDIR
+: "${VCSHGLOBAL_VG_CFG_D:=${VCSHGLOBAL_VG_BASE_D}/config}"
+export VCSHGLOBAL_VG_CFG_D
 # }}}
 
 # MAYBE: move the code below to a file sourced from/a function inside the 'functions' script
 
 # load the first config file from a list of alternatives {{{
-if [ -z "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
+# MAYBE: change code to use a list of tuples (say: "id:dir:filename" to allow for the 'is dir?' intermediate check)
+if [ -z "${VCSHGLOBAL_VG_CONFIG_FILE}" ] ; then
 	for t_stageid in \
-		stageid_cfgfile_uservar \
 		stageid_cfgfile_hc_usr_local_etc \
 		stageid_cfgfile_hc_vcshglobal_rootdir_usr_local_etc \
 		stageid_cfgfile_hc_vcshglobal_basedir_local_etc \
@@ -120,21 +170,16 @@ if [ -z "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
 	do
 		unset t_pathname
 		case "${t_stageid}" in
-			stageid_cfgfile_uservar )
-				# TODO: document VCSHGLOBAL_CONFIG_FILE environment variable
-				t_pathname="${VCSHGLOBAL_CONFIG_FILE}"
-				;;
-
 			stageid_cfgfile_hc_usr_local_etc )
 				t_pathname="/usr/local/etc/vcshglobal"
 				;;
 
 			stageid_cfgfile_hc_vcshglobal_rootdir_usr_local_etc )
-				t_pathname="${VCSHGLOBAL_OPT_ROOTDIR}/usr/local/etc/vcshglobal"
+				t_pathname="${VCSHGLOBAL_VG_FSSRC_D}/usr/local/etc/vcshglobal"
 				;;
 
 			stageid_cfgfile_hc_vcshglobal_basedir_local_etc )
-				t_pathname="${VCSHGLOBAL_OPT_BASEDIR}/local/etc/vcshglobal"
+				t_pathname="${VCSHGLOBAL_VG_BASE_D}/local/etc/vcshglobal"
 				;;
 
 			* )
@@ -143,17 +188,17 @@ if [ -z "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
 
 		esac
 		[ -n "${t_pathname}" -a -f "${t_pathname}" -a -r "${t_pathname}" ] \
-			&& VCSHGLOBAL_OPTION_CONFIG="${t_pathname}" \
+			&& VCSHGLOBAL_VG_CONFIG_FILE="${t_pathname}" \
 			&& break \
 			|| continue
 	done
 fi
-[ -n "${VCSHGLOBAL_OPTION_CONFIG}" ] \
-	&& export VCSHGLOBAL_OPTION_CONFIG
+[ -n "${VCSHGLOBAL_VG_CONFIG_FILE}" ] \
+	&& export VCSHGLOBAL_VG_CONFIG_FILE
 
-if [ -n "${VCSHGLOBAL_OPTION_CONFIG}" ] ; then
-	. "${VCSHGLOBAL_OPTION_CONFIG}" \
-		|| f_vcshglobal_abort "error sourcing config file '${VCSHGLOBAL_OPTION_CONFIG}'"
+if [ -n "${VCSHGLOBAL_VG_CONFIG_FILE}" ] ; then
+	. "${VCSHGLOBAL_VG_CONFIG_FILE}" \
+		|| f_vcshglobal_abort "error sourcing config file '${VCSHGLOBAL_VG_CONFIG_FILE}'"
 fi
 # }}}
 
