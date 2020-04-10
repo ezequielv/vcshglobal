@@ -32,7 +32,7 @@ f_vcshglobal_vcshconfig_isvcshmodcfgdir()
 	|| true
 
 # this is owr own variable
-vcsh_opt_vcshroot="${VCSHGLOBAL_CONFIG_BASEDIR}/vcsh"
+vcsh_opt_vcshroot="${VCSHGLOBAL_VG_CFG_D}/vcsh"
 
 [ -n "${vcsh_opt_vcshroot}" -a -d "${vcsh_opt_vcshroot}/" ] \
 	|| f_vcshglobal_vcshconfig_abort "empty value/dir not found for vcsh_opt_vcshroot: '${vcsh_opt_vcshroot}'" \

@@ -81,13 +81,6 @@ fi
 	# end
 # }}}
 
-# VCSHGLOBAL_CONFIG_BASEDIR {{{
-: "${VCSHGLOBAL_CONFIG_BASEDIR:=${VCSHGLOBAL_VG_BASE_D}/config}"
-[ -n "${VCSHGLOBAL_CONFIG_BASEDIR}" ] \
-	&& export VCSHGLOBAL_CONFIG_BASEDIR \
-	# end
-# }}}
-
 # return value
 :
 # vim600: set filetype=sh fileformat=unix:
