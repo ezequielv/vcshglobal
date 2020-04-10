@@ -1,46 +1,5 @@
 # default vcshglobal config file
 
-# VCSHGLOBAL_VCSH_CONFIG_FILE {{{
-if [ -z "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] ; then
-	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE {{{
-	f_vcshglobal_findcfgfile \
-			"${VCSHGLOBAL_VCSH_CONFIG_DETECT_BASENAME:=vcshglobal_vcshconfig}" \
-		|| return $?
-	VCSHGLOBAL_VCSH_CONFIG_FILE="${g_vcshglobal_findcfgfile_lastcfgfile}"
-	# }}}
-fi
-
-[ -n "${VCSHGLOBAL_VCSH_CONFIG_FILE}" ] \
-	&& export VCSHGLOBAL_VCSH_CONFIG_FILE \
-	# end
-# }}}
-
-# VCSHGLOBAL_MR_CONFIG_FILE {{{
-if [ -z "${VCSHGLOBAL_MR_CONFIG_FILE}" ] ; then
-	f_vcshglobal_findcfgfile \
-			"${VCSHGLOBAL_MR_CONFIG_DETECT_BASENAME:=vcshglobal_mrconfig}" \
-		|| return $?
-	VCSHGLOBAL_MR_CONFIG_FILE="${g_vcshglobal_findcfgfile_lastcfgfile}"
-fi
-
-[ -n "${VCSHGLOBAL_MR_CONFIG_FILE}" ] \
-	&& export VCSHGLOBAL_MR_CONFIG_FILE \
-	# end
-# }}}
-
-# VCSHGLOBAL_MR_TOP_D {{{
-# MAYBE: try to use one of several possibilities, based on the variables we've got so far.
-if [ -z "${VCSHGLOBAL_MR_TOP_D}" -a -n "${VCSHGLOBAL_VG_BASE_D}" ] ; then
-	VCSHGLOBAL_MR_TOP_D="${VCSHGLOBAL_VG_BASE_D}"
-fi
-
-[ -n "${VCSHGLOBAL_MR_TOP_D}" ] \
-	&& export VCSHGLOBAL_MR_TOP_D \
-	# end
-# }}}
-
-# return value
-:
 # vim600: set filetype=sh fileformat=unix:
 # vim: set noexpandtab:
 # vi: set autoindent tabstop=4 shiftwidth=4:

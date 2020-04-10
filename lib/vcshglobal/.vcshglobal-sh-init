@@ -6,6 +6,18 @@ f_vcshglobal_echo_to_stdout()
 	echo "${VCSHGLOBAL_INT_LASTPRGPATHNAME:-$0}:" "$@" 1>&2
 }
 
+f_vcshglobal_debug()
+{
+	[ -n "${g_vcshglobal_debug_flag}" ] || return 0
+	f_vcshglobal_echo_to_stdout "[debug]" "$@"
+}
+
+f_vcshglobal_debug_from_stdin()
+{
+	[ -n "${g_vcshglobal_debug_flag}" ] || return 0
+	sed 's,^,'"${VCSHGLOBAL_INT_LASTPRGPATHNAME:-$0}: [debug] "',' 1>&2 2> /dev/null
+}
+
 f_vcshglobal_error()
 {
 	f_vcshglobal_echo_to_stdout "ERROR:" "$@"
@@ -24,6 +36,18 @@ f_vcshglobal_abort()
 	|| f_vcshglobal_abort "required variable VCSHGLOBAL_INT_LASTPRGPATHNAME has not been set by the main program script"
 [ -f "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" -a -x "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
 	|| f_vcshglobal_abort "VCSHGLOBAL_INT_LASTPRGPATHNAME ('${VCSHGLOBAL_INT_LASTPRGPATHNAME}') does not seem to be a valid executable"
+
+# set environment for child processes -- step 1 {{{
+export VCSHGLOBAL_INT_LASTPRGPATHNAME
+# }}}
+
+# }}}
+
+# debug support {{{
+# DOC: set VCSHGLOBAL_DEBUG={ 0 | 1 }
+unset g_vcshglobal_debug_flag
+[ -n "${VCSH_DEBUG}" -o "${VCSHGLOBAL_DEBUG:-0}" -ne 0 ] \
+	&& g_vcshglobal_debug_flag=x
 # }}}
 
 # config file utility functions {{{
@@ -63,6 +87,10 @@ f_vcshglobal_findcfgfile()
 			&& break
 	done
 
+	# debug message with found filename
+	[ -n "${g_vcshglobal_findcfgfile_lastcfgfile}" ] \
+		&& f_vcshglobal_debug "found config file for basename='${l_vcshglobal_findcfgfile_basename}': '${g_vcshglobal_findcfgfile_lastcfgfile}'"
+
 	unset \
 		l_vcshglobal_findcfgfile_basename \
 		l_vcshglobal_findcfgfile_pathname \
@@ -70,133 +98,352 @@ f_vcshglobal_findcfgfile()
 	return 0
 }
 
-# }}}
+# args: VARNAME [basename [suffix_id]]
+f_vcshglobal_shinit_int_calc_cfgfile_invar()
+{
+	# pre-conditions
+	l_vcshglobal_shinit_int_calc_cfgfile_invar_varname="$1" \
+		&& shift \
+		&& [ -n "${l_vcshglobal_shinit_int_calc_cfgfile_invar_varname}" ] \
+		|| f_vcshglobal_error "f_vcshglobal_shinit_int_calc_cfgfile_invar(): arg_1 invalid. needs a non-empty variable name" \
+		|| return $?
 
-# set environment for child processes -- step 1 {{{
-export VCSHGLOBAL_INT_LASTPRGPATHNAME
+	# optional args
+	#  MAYBE: put the default basename in a global variable somewhere
+	[ $# -gt 0 ] \
+		&& l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamebase="$1" \
+		&& shift \
+		|| unset l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamebase
+		# end
+	[ $# -gt 0 ] \
+		&& l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff="$1" \
+		&& shift \
+		|| unset l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff
+		# end
+
+	# defaults
+	: "${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamebase:=vcshglobal}"
+
+	l_vcshglobal_shinit_int_calc_cfgfile_invar_rc=0
+
+	if [ ${l_vcshglobal_shinit_int_calc_cfgfile_invar_rc} -eq 0 ] ; then
+		eval "l_vcshglobal_shinit_int_calc_cfgfile_invar_varval=\${${l_vcshglobal_shinit_int_calc_cfgfile_invar_varname}}" \
+			|| l_vcshglobal_shinit_int_calc_cfgfile_invar_rc=$?
+	fi
+
+	# check whether the variable has a non-empty value already, and return straight away if it has.
+	[ ${l_vcshglobal_shinit_int_calc_cfgfile_invar_rc} -eq 0 \
+			-a -n "${l_vcshglobal_shinit_int_calc_cfgfile_invar_varval}" ] \
+		&& return 0
+
+	if [ ${l_vcshglobal_shinit_int_calc_cfgfile_invar_rc} -eq 0 \
+			-a -n "${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff}" ] ; then
+		# * just in case, get rid of a single '-' string prefix;
+		# * adjust the filename suffix string to have a standard prefix ('-');
+		l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff="${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff#-}" \
+			&& l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff="${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff:+-${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff}}" \
+			|| l_vcshglobal_shinit_int_calc_cfgfile_invar_rc=$?
+	fi
+
+	if [ ${l_vcshglobal_shinit_int_calc_cfgfile_invar_rc} -eq 0 ] ; then
+		# NOTE: '${g_vcshglobal_findcfgfile_lastcfgfile}' can have an empty
+		# value, and that's ok for this function: we just propagate it to the
+		# caller-specified variable below.
+		f_vcshglobal_findcfgfile "${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamebase}${l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff}" \
+			&& l_vcshglobal_shinit_int_calc_cfgfile_invar_varval="${g_vcshglobal_findcfgfile_lastcfgfile}" \
+			|| l_vcshglobal_shinit_int_calc_cfgfile_invar_rc=$?
+	fi
+
+	# conditionally comit results to caller-specified environment variable.
+	if [ ${l_vcshglobal_shinit_int_calc_cfgfile_invar_rc} -eq 0 ] ; then
+		eval "${l_vcshglobal_shinit_int_calc_cfgfile_invar_varname}='${l_vcshglobal_shinit_int_calc_cfgfile_invar_varval}'" \
+			&& export "${l_vcshglobal_shinit_int_calc_cfgfile_invar_varname}" \
+			|| l_vcshglobal_shinit_int_calc_cfgfile_invar_rc=$?
+	fi
+	unset \
+		l_vcshglobal_shinit_int_calc_cfgfile_invar_varval \
+		l_vcshglobal_shinit_int_calc_cfgfile_invar_varname \
+		l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamesuff \
+		l_vcshglobal_shinit_int_calc_cfgfile_invar_fnamebase \
+		# end
+	return ${l_vcshglobal_shinit_int_calc_cfgfile_invar_rc}
+}
+
+# ref: f_vcshglobal_shinit_int_proc_cfgfile "${VCSHGLOBAL_VG_CONFIG_FILE_PRE}"
+# args: CONFIG_FILENAME
+f_vcshglobal_shinit_int_proc_cfgfile()
+{
+	l_vcshglobal_shinit_int_proc_cfgfile_cfgfile="$1" \
+		&& shift \
+		|| f_vcshglobal_abort "invalid syntax: needs a positional arg (can be empty): CONFIG_FILENAME"
+
+	l_vcshglobal_shinit_int_proc_cfgfile_rc=0
+
+	if [ ${l_vcshglobal_shinit_int_proc_cfgfile_rc} -eq 0 ] ; then
+		case "${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}" in
+			# TODO: put this logic in a new function: f_vcshglobal_cfgfile_isfilename()
+			# MAYBE: add a stage to f_vcshglobal_main_proc_cfgfiles() to call a new function that would either 'unset(1)' or assign a null value to variables that fail the check 'f_vcshglobal_cfgfile_isfilename()'
+			# TODO: determine which values to support, out of all of these
+			0 | - | false | f )
+				unset l_vcshglobal_shinit_int_proc_cfgfile_cfgfile
+				;;
+		esac
+	fi
+
+	if [ ${l_vcshglobal_shinit_int_proc_cfgfile_rc} -eq 0 -a -n "${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}" ] ; then
+		[ -f "${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}" -a -r "${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}" ] \
+			|| f_vcshglobal_error "'${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}' is not a readable file" \
+			|| l_vcshglobal_shinit_int_proc_cfgfile_rc=$?
+	fi
+	if [ ${l_vcshglobal_shinit_int_proc_cfgfile_rc} -eq 0 -a -n "${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}" ] ; then
+		f_vcshglobal_debug "about to source file: '${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}'"
+		. "${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}" \
+			|| {
+				l_vcshglobal_shinit_int_proc_cfgfile_rc=$? \
+					|| f_vcshglobal_error "error 'sourcing' file '${l_vcshglobal_shinit_int_proc_cfgfile_cfgfile}': ${l_vcshglobal_shinit_int_proc_cfgfile_rc}" \
+					|| :
+					# end
+			}
+	fi
+
+	unset \
+		l_vcshglobal_shinit_int_proc_cfgfile_cfgfile \
+		# end
+	return ${l_vcshglobal_shinit_int_proc_cfgfile_rc}
+}
+
 # }}}
 
 # get value for VCSHGLOBAL_VG_BASE_D {{{
-if [ -z "${VCSHGLOBAL_VG_BASE_D}" ] ; then
-	unset t_dirnow
+f_vcshglobal_shinit_int_get_vg_vars_01()
+{
+	if [ -z "${VCSHGLOBAL_VG_BASE_D}" ] ; then
+		unset l_vcshglobal_shinit_int_get_vg_vars_01_dirnow
 
-	for t_stageid in \
-		stageid_vcshglobalbasedir_prgasis \
-		stageid_vcshglobalbasedir_prglinkdst \
-		stageid_vcshglobalbasedir_hc_01 \
-		# end
-	do
-		unset t_dirnow
-		case "${t_stageid}" in
-			stageid_vcshglobalbasedir_prgasis | stageid_vcshglobalbasedir_prglinkdst )
-				[ -n "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
-					|| continue
-
-				case "${t_stageid}" in
-					stageid_vcshglobalbasedir_prgasis )
-						t_prgnow="${VCSHGLOBAL_INT_LASTPRGPATHNAME}"
-						;;
-
-					stageid_vcshglobalbasedir_prglinkdst )
-						unset t_prgnow
-						t_prgnow=`readlink -f "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" 2> /dev/null` \
-							&& [ -n "${t_prgnow}" ] \
-							|| continue \
-							# end
-						;;
-
-					* )
-						f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${t_stageid}'" ;;
-
-				esac
-				[ -n "${t_prgnow}" ] \
-					&& t_dirnow="${t_prgnow%/opt/vcshglobal/*}" \
-					&& [ "${t_dirnow}" != "${t_prgnow}" ] \
-					&& t_dirnow="${t_dirnow}/opt/vcshglobal" \
-					|| continue \
-					# end
-				;;
-
-			stageid_vcshglobalbasedir_hc_01 )
-				t_dirnow='/usr/local/opt/vcshglobal' ;;
-
-			* )
-				f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${t_stageid}'" ;;
-
-		esac
-
-		[ -n "${t_dirnow}" -a -d "${t_dirnow}/" ] \
-			&& [ -d "${t_dirnow}/rootdir/" ] \
-			|| continue \
+		for l_vcshglobal_shinit_int_get_vg_vars_01_stageid in \
+			stageid_vcshglobalbasedir_prgasis \
+			stageid_vcshglobalbasedir_prglinkdst \
+			stageid_vcshglobalbasedir_hc_01 \
 			# end
+		do
+			unset l_vcshglobal_shinit_int_get_vg_vars_01_dirnow
+			case "${l_vcshglobal_shinit_int_get_vg_vars_01_stageid}" in
+				stageid_vcshglobalbasedir_prgasis | stageid_vcshglobalbasedir_prglinkdst )
+					[ -n "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" ] \
+						|| continue
 
-		VCSHGLOBAL_VG_BASE_D="${t_dirnow}"
-		[ -n "${VCSH_DEBUG}" ] \
-			&& echo "[DEBUG] found value for VCSHGLOBAL_VG_BASE_D='${VCSHGLOBAL_VG_BASE_D}' in stageid '${t_stageid}'" 1>&2 \
-			|| true
-		break
-	done
+					case "${l_vcshglobal_shinit_int_get_vg_vars_01_stageid}" in
+						stageid_vcshglobalbasedir_prgasis )
+							l_vcshglobal_shinit_int_get_vg_vars_01_prgnow="${VCSHGLOBAL_INT_LASTPRGPATHNAME}"
+							;;
+
+						stageid_vcshglobalbasedir_prglinkdst )
+							unset l_vcshglobal_shinit_int_get_vg_vars_01_prgnow
+							l_vcshglobal_shinit_int_get_vg_vars_01_prgnow=`readlink -f "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" 2> /dev/null` \
+								&& [ -n "${l_vcshglobal_shinit_int_get_vg_vars_01_prgnow}" ] \
+								|| continue \
+								# end
+							;;
+
+						* )
+							f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${l_vcshglobal_shinit_int_get_vg_vars_01_stageid}'" ;;
+
+					esac
+					# TODO: have stages for this, too (or fold them into the stageid somehow)
+					[ -n "${l_vcshglobal_shinit_int_get_vg_vars_01_prgnow}" ] \
+						&& l_vcshglobal_shinit_int_get_vg_vars_01_dirnow="${l_vcshglobal_shinit_int_get_vg_vars_01_prgnow%/opt/vcshglobal/*}" \
+						&& [ "${l_vcshglobal_shinit_int_get_vg_vars_01_dirnow}" != "${l_vcshglobal_shinit_int_get_vg_vars_01_prgnow}" ] \
+						&& l_vcshglobal_shinit_int_get_vg_vars_01_dirnow="${l_vcshglobal_shinit_int_get_vg_vars_01_dirnow}/opt/vcshglobal" \
+						|| continue \
+						# end
+					;;
+
+				stageid_vcshglobalbasedir_hc_01 )
+					l_vcshglobal_shinit_int_get_vg_vars_01_dirnow='/usr/local/opt/vcshglobal' ;;
+
+				* )
+					f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${l_vcshglobal_shinit_int_get_vg_vars_01_stageid}'" ;;
+
+			esac
+
+			[ -n "${l_vcshglobal_shinit_int_get_vg_vars_01_dirnow}" -a -d "${l_vcshglobal_shinit_int_get_vg_vars_01_dirnow}/" ] \
+				&& [ -d "${l_vcshglobal_shinit_int_get_vg_vars_01_dirnow}/rootdir/" ] \
+				|| continue \
+				# end
+
+			VCSHGLOBAL_VG_BASE_D="${l_vcshglobal_shinit_int_get_vg_vars_01_dirnow}"
+			f_vcshglobal_debug "found value for VCSHGLOBAL_VG_BASE_D='${VCSHGLOBAL_VG_BASE_D}' in stageid '${l_vcshglobal_shinit_int_get_vg_vars_01_stageid}'"
+			break
+		done
+		# NOTE: this works even if the variable has not been assigned to yet
+		export VCSHGLOBAL_VG_BASE_D
+	fi
+
+	return 0
+}
+# }}}
+
+f_vcshglobal_shinit_int_get_vg_vars_derived()
+{
 	[ -n "${VCSHGLOBAL_VG_BASE_D}" ] \
-		|| {
-			echo "${VCSHGLOBAL_INT_LASTPRGPATHNAME}: ERROR: could not work out a valid value for VCSHGLOBAL_VG_BASE_D" 1>&2
-			exit 1
-		}
+		|| f_vcshglobal_error "f_vcshglobal_shinit_int_get_vg_vars_derived(): variable VCSHGLOBAL_VG_BASE_D should be non-empty at this point" \
+		|| return $?
 	export VCSHGLOBAL_VG_BASE_D
-fi
-# }}}
 
-# set up some more defaults {{{
-: "${VCSHGLOBAL_VG_FSSRC_D:=${VCSHGLOBAL_VG_BASE_D}/rootdir}"
-export VCSHGLOBAL_VG_FSSRC_D
+	# set up some more defaults {{{
+	: "${VCSHGLOBAL_VG_FSSRC_D:=${VCSHGLOBAL_VG_BASE_D}/rootdir}"
+	export VCSHGLOBAL_VG_FSSRC_D
 
-: "${VCSHGLOBAL_VG_CFG_D:=${VCSHGLOBAL_VG_BASE_D}/config}"
-export VCSHGLOBAL_VG_CFG_D
-# }}}
+	: "${VCSHGLOBAL_VG_CFG_D:=${VCSHGLOBAL_VG_BASE_D}/config}"
+	export VCSHGLOBAL_VG_CFG_D
+	# }}}
 
-# MAYBE: move the code below to a file sourced from/a function inside the 'functions' script
+	return 0
+}
 
-# load the first config file from a list of alternatives {{{
-# MAYBE: change code to use a list of tuples (say: "id:dir:filename" to allow for the 'is dir?' intermediate check)
-if [ -z "${VCSHGLOBAL_VG_CONFIG_FILE}" ] ; then
-	for t_stageid in \
-		stageid_cfgfile_hc_usr_local_etc \
-		stageid_cfgfile_hc_vcshglobal_rootdir_usr_local_etc \
-		stageid_cfgfile_hc_vcshglobal_basedir_local_etc \
+f_vcshglobal_shinit_int_calc_progs_derived()
+{
+	# VCSHGLOBAL_MR_TOP_D {{{
+	# MAYBE: try to use one of several possibilities, based on the variables we've got so far.
+	if [ -z "${VCSHGLOBAL_MR_TOP_D}" -a -n "${VCSHGLOBAL_VG_BASE_D}" ] ; then
+		VCSHGLOBAL_MR_TOP_D="${VCSHGLOBAL_VG_BASE_D}"
+	fi
+
+	[ -n "${VCSHGLOBAL_MR_TOP_D}" ] \
+		&& export VCSHGLOBAL_MR_TOP_D \
 		# end
-	do
-		unset t_pathname
-		case "${t_stageid}" in
-			stageid_cfgfile_hc_usr_local_etc )
-				t_pathname="/usr/local/etc/vcshglobal"
-				;;
+	# }}}
 
-			stageid_cfgfile_hc_vcshglobal_rootdir_usr_local_etc )
-				t_pathname="${VCSHGLOBAL_VG_FSSRC_D}/usr/local/etc/vcshglobal"
-				;;
+	return 0
+}
 
-			stageid_cfgfile_hc_vcshglobal_basedir_local_etc )
-				t_pathname="${VCSHGLOBAL_VG_BASE_D}/local/etc/vcshglobal"
-				;;
+# config file processing {{{
+f_vcshglobal_main_proc_cfgfiles()
+{
+	l_vcshglobal_main_proc_cfgfiles_main_msgpref="[main] [common] "
+	l_vcshglobal_main_proc_cfgfiles_main_rc=0
 
-			* )
-				f_vcshglobal_abort "internal error: invalid/unsupported stage id: '${t_stageid}'"
-				;;
+	if [ ${l_vcshglobal_main_proc_cfgfiles_main_rc} -eq 0 ] ; then
+		for l_vcshglobal_main_proc_cfgfiles_main_stage in \
+			stageid_vcshglobal_main_calc_cfgfile_pre \
+			stageid_vcshglobal_main_proc_cfgfile_pre \
+			\
+			stageid_vcshglobal_main_calc_vgvars_01 \
+			\
+			stageid_vcshglobal_main_calc_cfgfile_main \
+			stageid_vcshglobal_main_proc_cfgfile_main \
+			\
+			stageid_vcshglobal_main_calc_vgvars_derived \
+			\
+			stageid_vcshglobal_main_calc_programs_cfgfiles \
+			stageid_vcshglobal_main_calc_programs_derived \
+			\
+			stageid_vcshglobal_main_calc_cfgfile_post \
+			stageid_vcshglobal_main_proc_cfgfile_post \
+			\
+			# end
+		do
+			f_vcshglobal_debug "${l_vcshglobal_main_proc_cfgfiles_main_msgpref}processing stage '${l_vcshglobal_main_proc_cfgfiles_main_stage}':"
 
-		esac
-		[ -n "${t_pathname}" -a -f "${t_pathname}" -a -r "${t_pathname}" ] \
-			&& VCSHGLOBAL_VG_CONFIG_FILE="${t_pathname}" \
-			&& break \
-			|| continue
-	done
-fi
-[ -n "${VCSHGLOBAL_VG_CONFIG_FILE}" ] \
-	&& export VCSHGLOBAL_VG_CONFIG_FILE
+			case "${l_vcshglobal_main_proc_cfgfiles_main_stage}" in
+				stageid_vcshglobal_main_calc_vgvars_01 )
+					f_vcshglobal_shinit_int_get_vg_vars_01 \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
 
-if [ -n "${VCSHGLOBAL_VG_CONFIG_FILE}" ] ; then
-	. "${VCSHGLOBAL_VG_CONFIG_FILE}" \
-		|| f_vcshglobal_abort "error sourcing config file '${VCSHGLOBAL_VG_CONFIG_FILE}'"
-fi
+				stageid_vcshglobal_main_calc_vgvars_derived )
+					f_vcshglobal_shinit_int_get_vg_vars_derived \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_calc_cfgfile_pre )
+					f_vcshglobal_shinit_int_calc_cfgfile_invar VCSHGLOBAL_VG_CONFIG_FILE_PRE '' "pre" \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_proc_cfgfile_pre )
+					f_vcshglobal_shinit_int_proc_cfgfile "${VCSHGLOBAL_VG_CONFIG_FILE_PRE}" \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_calc_cfgfile_main )
+					f_vcshglobal_shinit_int_calc_cfgfile_invar VCSHGLOBAL_VG_CONFIG_FILE_MAIN '' "" \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_proc_cfgfile_main )
+					f_vcshglobal_shinit_int_proc_cfgfile "${VCSHGLOBAL_VG_CONFIG_FILE_MAIN}" \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_calc_cfgfile_post )
+					f_vcshglobal_shinit_int_calc_cfgfile_invar VCSHGLOBAL_VG_CONFIG_FILE_POST '' "post" \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_proc_cfgfile_post )
+					f_vcshglobal_shinit_int_proc_cfgfile "${VCSHGLOBAL_VG_CONFIG_FILE_POST}" \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_calc_programs_cfgfiles )
+					f_vcshglobal_shinit_int_calc_cfgfile_invar VCSHGLOBAL_VCSH_CONFIG_FILE 'vcshglobal_vcshconfig' \
+						&& f_vcshglobal_shinit_int_calc_cfgfile_invar VCSHGLOBAL_MR_CONFIG_FILE 'vcshglobal_mrconfig' \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				stageid_vcshglobal_main_calc_programs_derived )
+					f_vcshglobal_shinit_int_calc_progs_derived \
+						|| l_vcshglobal_main_proc_cfgfiles_main_rc=$?
+					;;
+
+				* )
+					f_vcshglobal_abort "${l_vcshglobal_main_proc_cfgfiles_main_msgpref}invalid stage id '${l_vcshglobal_main_proc_cfgfiles_main_stage}'"
+					;;
+			esac
+
+			# prev: v1: [ ${l_vcshglobal_main_proc_cfgfiles_main_rc} -eq 0 ] \
+			# prev: v1: 	|| f_vcshglobal_abort "${l_vcshglobal_main_proc_cfgfiles_main_msgpref}failed in stage '${l_vcshglobal_main_proc_cfgfiles_main_stage}'. error_code=${l_vcshglobal_main_proc_cfgfiles_main_rc}."
+			[ ${l_vcshglobal_main_proc_cfgfiles_main_rc} -eq 0 ] \
+				|| break
+		done
+	fi
+
+	# report exported variables so far
+	if [ -n "${g_vcshglobal_debug_flag}" ] ; then
+		{
+			# variables here are inside a child process, so no need to cleanup
+			t_f_filter()
+			{
+				grep -e '^VCSHGLOBAL_' | grep -v '^VCSHGLOBAL[^=]*_INT_' | sort || true
+			}
+
+			printf '\n%s\n' "current environment variables:"
+			set | t_f_filter
+
+			printf '\n%s\n' "exported environment variables:"
+			env | t_f_filter
+
+			# MAYBE: difference between the two? (but it might require tmp
+			# files, as the elegant solution would require <( ... ), which is
+			# not posix)
+
+			printf '\n'
+		} 2>&1 | f_vcshglobal_debug_from_stdin \
+			|| :
+	fi
+
+	unset \
+		l_vcshglobal_main_proc_cfgfiles_main_msgpref \
+		l_vcshglobal_main_proc_cfgfiles_main_stage \
+		# end
+	return ${l_vcshglobal_main_proc_cfgfiles_main_rc}
+}
 # }}}
+
+# FIXME: call this explicitly from somewhere else (a new function to be called from each top-level script?)
+f_vcshglobal_main_proc_cfgfiles \
+	|| f_vcshglobal_abort "failed processing main common code"
 
 # defaults {{{
 # }}}
