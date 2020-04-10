@@ -26,6 +26,52 @@ f_vcshglobal_abort()
 	|| f_vcshglobal_abort "VCSHGLOBAL_INT_LASTPRGPATHNAME ('${VCSHGLOBAL_INT_LASTPRGPATHNAME}') does not seem to be a valid executable"
 # }}}
 
+# config file utility functions {{{
+
+# args: BASENAME
+# side effects:
+#  * on a file successfully found:
+#   * sets g_vcshglobal_findcfgfile_lastcfgfile to an existing file;
+#   * returns 0;
+#  * on no cfg file being found:
+#   * unsets g_vcshglobal_findcfgfile_lastcfgfile;
+#   * returns 0;
+#  * on error:
+#   * returns a non-zero value;
+f_vcshglobal_findcfgfile()
+{
+	l_vcshglobal_findcfgfile_basename="$1"
+	unset g_vcshglobal_findcfgfile_lastcfgfile
+
+	[ -n "${l_vcshglobal_findcfgfile_basename}" ] \
+		|| return 1
+
+	# optionally set VCSHGLOBAL_VCSH_CONFIG_FILE
+	for l_vcshglobal_findcfgfile_pathname in \
+		"/etc/${l_vcshglobal_findcfgfile_basename}" \
+		"/usr/local/etc/${l_vcshglobal_findcfgfile_basename}" \
+		${VCSHGLOBAL_VG_CFG_D:+"${VCSHGLOBAL_VG_CFG_D}/etc/${l_vcshglobal_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_FSSRC_D:+"${VCSHGLOBAL_VG_FSSRC_D}/etc/${l_vcshglobal_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_FSSRC_D:+"${VCSHGLOBAL_VG_FSSRC_D}/usr/local/etc/${l_vcshglobal_findcfgfile_basename}"} \
+		${VCSHGLOBAL_VG_BASE_D:+"${VCSHGLOBAL_VG_BASE_D}/local/etc/${l_vcshglobal_findcfgfile_basename}"} \
+		# end
+	do
+		[ -n "${l_vcshglobal_findcfgfile_pathname}" -a -f "${l_vcshglobal_findcfgfile_pathname}" -a -r "${l_vcshglobal_findcfgfile_pathname}" ] \
+			|| continue
+
+		g_vcshglobal_findcfgfile_lastcfgfile="${l_vcshglobal_findcfgfile_pathname}" \
+			&& break
+	done
+
+	unset \
+		l_vcshglobal_findcfgfile_basename \
+		l_vcshglobal_findcfgfile_pathname \
+		# end
+	return 0
+}
+
+# }}}
+
 # set environment for child processes -- step 1 {{{
 export VCSHGLOBAL_INT_LASTPRGPATHNAME
 # }}}
