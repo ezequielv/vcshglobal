@@ -50,6 +50,248 @@ unset g_vcshglobal_debug_flag
 	&& g_vcshglobal_debug_flag=x
 # }}}
 
+# command-line options processing {{{
+
+# defaults {{{
+g_vcshglobal_shinit_progopt_longopt_pref='vg'
+unset g_vcshglobal_shinit_progopt_process_optstring
+# }}}
+
+# default option-processing implementations {{{
+
+# args: SHORT_OPTION_CHARACTER OPTARG_EQUIVALENT
+#
+# default implementation: as the calling script should specify its own
+# "optstring" value, we can mandate that it implements its own function, too.
+# Therefore, this default implementation merely errors, as the code should
+# never use this default function.
+f_vcshglobal_shinit_progopt_custom_handle_shortoption()
+{
+	f_vcshglobal_error "f_vcshglobal_shinit_progopt_custom_handle_shortoption(): default implementation: calling script should implement its own function" \
+		|| return $?
+}
+
+# args: ARG_FULL ARG_NAME ARG_VAL
+#
+#  ARG_FULL: includes the '--' prefix, the '=value' component(s), etc.;
+#  ARG_NAME: just the name (trimmed at the first '='), without its '--' prefix;
+#  ARG_VAL: if there was a '=', the stirng that came after that;
+#
+# default implementation:
+#  * as there is not 'optstr'-like ('getopts(1)') string specified by the
+#    calling script, we cannot assume that the calling script is interested in
+#    processing "own" long options, so this default implementation is a
+#    "no-op".
+f_vcshglobal_shinit_progopt_custom_handle_longoption()
+{
+	f_vcshglobal_debug "f_vcshglobal_shinit_progopt_custom_handle_longoption(): no-op default implementation." \
+			"args='$*';" \
+			"arg_full='${1}';" \
+			"arg_name='${2}';" \
+			"arg_val='${3}';" \
+			# end
+}
+
+# }}}
+
+# process up to the next '--' or unrecognised option
+#
+# args: [PROGRAM_ARGS...]
+#
+# NOTE: external dependencies:
+#  * g_vcshglobal_shinit_progopt_process_optstring: 'optstring' arg to getopts(1)
+#  * f_vcshglobal_shinit_progopt_custom_handle_longoption( arg_full, arg_name_without_--, arg_val_if_one_was_specified )
+#    * should set: g_vcshglobal_shinit_progopt_process_opt_proc_nargs (typically 1 or 2)
+#  * f_vcshglobal_shinit_progopt_custom_handle_shortoption( short_option_characer, optarg )
+#    * no need to fiddle with OPTIND or change the global 'OPTARG' variable.
+#      * (the 'optstring' passed into f_vcshglobal_shinit_progopt_process() would already take care of that)
+#
+# NOTE: side effects
+#  * updates OPTIND, just like getopts(1) does;
+f_vcshglobal_shinit_progopt_process()
+{
+	l_vcshglobal_shinit_progopt_process_rc=0
+	l_vcshglobal_shinit_progopt_process_optind="${OPTIND:-1}"
+	l_vcshglobal_shinit_progopt_process_optstr="${g_vcshglobal_shinit_progopt_process_optstring}"
+
+	# conditionally shift args, as per l_vcshglobal_shinit_progopt_process_optind (OPTIND) on entry
+	if [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 ] ; then
+		l_vcshglobal_shinit_progopt_process_nshift=$((${l_vcshglobal_shinit_progopt_process_optind} - 1))
+		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -gt 0 ] ; then
+			shift ${l_vcshglobal_shinit_progopt_process_nshift} \
+				|| l_vcshglobal_shinit_progopt_process_rc=$?
+		fi
+	fi
+
+	# manage 'l_vcshglobal_shinit_progopt_process_optstr' value.
+	if [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a -n "${l_vcshglobal_shinit_progopt_process_optstr}" ] ; then
+		# MAYBE: add own options to l_vcshglobal_shinit_progopt_process_optstr, if any.
+		# NOTE: add a single ':' prefix for 'getopts(1)' to *not* write its own
+		# messages to stderr and give the (posix-standard) behaviour relied
+		# upon by the code using 'getopts(1)' (below).
+		l_vcshglobal_shinit_progopt_process_optstr="${l_vcshglobal_shinit_progopt_process_optstr#:}" \
+			&& l_vcshglobal_shinit_progopt_process_optstr="${l_vcshglobal_shinit_progopt_process_optstr:+:${l_vcshglobal_shinit_progopt_process_optstr}}" \
+			|| l_vcshglobal_shinit_progopt_process_rc=$?
+	fi
+
+	while [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a $# -gt 0 ]
+	do
+		l_vcshglobal_shinit_progopt_process_nshift=0
+
+		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 ] ; then
+			l_vcshglobal_shinit_progopt_process_argfull="$1"
+			# MAYBE: process long option components into separate variables
+		fi
+
+		# decide whether to stop processing args at this point
+		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 ] ; then
+			case "${l_vcshglobal_shinit_progopt_process_argfull}" in
+				-- ) l_vcshglobal_shinit_progopt_process_nshift=1 ;;
+				-* ) : ;;
+				* ) break ;;
+			esac
+		fi
+
+		# set l_vcshglobal_shinit_progopt_process_arglongname,
+		# l_vcshglobal_shinit_progopt_process_arglongval.
+		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 ] ; then
+			case "${l_vcshglobal_shinit_progopt_process_argfull}" in
+				--* )
+					l_vcshglobal_shinit_progopt_process_arglongname="${l_vcshglobal_shinit_progopt_process_argfull%%=*}"
+					[ "${l_vcshglobal_shinit_progopt_process_arglongname}" != "${l_vcshglobal_shinit_progopt_process_argfull}" ] \
+						&& l_vcshglobal_shinit_progopt_process_arglongval="${l_vcshglobal_shinit_progopt_process_argfull#*=}" \
+						|| unset l_vcshglobal_shinit_progopt_process_arglongval
+					# remove the leading '--', which (in this block) should always succeed
+					l_vcshglobal_shinit_progopt_process_arglongname="${l_vcshglobal_shinit_progopt_process_arglongname#--}"
+					# avoid having a value from a previous iteration.
+					# this will be set below, if needed.
+					unset l_vcshglobal_shinit_progopt_process_arglongownname
+					;;
+
+				* )
+					unset \
+						l_vcshglobal_shinit_progopt_process_arglongname \
+						l_vcshglobal_shinit_progopt_process_arglongval \
+						# end
+					;;
+			esac
+		fi
+
+		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 -a -n "${l_vcshglobal_shinit_progopt_process_arglongname}" ] ; then
+			case "${l_vcshglobal_shinit_progopt_process_arglongname}" in
+				${g_vcshglobal_shinit_progopt_longopt_pref}-* )
+					l_vcshglobal_shinit_progopt_process_arglongownname="${l_vcshglobal_shinit_progopt_process_arglongname#*-}" \
+						&& [ "${l_vcshglobal_shinit_progopt_process_arglongownname}" != "${l_vcshglobal_shinit_progopt_process_arglongname}" ] \
+						|| f_vcshglobal_abort "internal error: trimming option prefix did not yield the expected result. full option string: '${l_vcshglobal_shinit_progopt_process_argfull}'"
+
+					l_vcshglobal_shinit_progopt_process_nshift=1
+					case "${l_vcshglobal_shinit_progopt_process_arglongownname}" in
+						help )
+							f_vcshglobal_echo_to_stdout "TODO: help message" ;; # FIXME: implement
+
+						debug )
+							f_vcshglobal_debug "about to process '${l_vcshglobal_shinit_progopt_process_argfull}'. current_debug_flag='${g_vcshglobal_debug_flag}';"
+							[ "${l_vcshglobal_shinit_progopt_process_arglongval:-1}" -ne 0 ] \
+								&& g_vcshglobal_debug_flag=x || unset g_vcshglobal_debug_flag
+							f_vcshglobal_debug "processed '${l_vcshglobal_shinit_progopt_process_argfull}'. new_debug_flag='${g_vcshglobal_debug_flag}';"
+							;;
+
+						* )
+							l_vcshglobal_shinit_progopt_process_nshift=0
+							;;
+					esac
+					;;
+			esac
+		fi
+
+		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 -a -n "${l_vcshglobal_shinit_progopt_process_arglongname}" ] ; then
+			g_vcshglobal_shinit_progopt_process_opt_proc_nargs=0
+
+			f_vcshglobal_shinit_progopt_custom_handle_longoption \
+					"${l_vcshglobal_shinit_progopt_process_argfull}" \
+					"${l_vcshglobal_shinit_progopt_process_arglongname}" \
+					"${l_vcshglobal_shinit_progopt_process_arglongval}" \
+				|| l_vcshglobal_shinit_progopt_process_rc=$?
+
+			# conditionally propagate 'g_vcshglobal_shinit_progopt_process_opt_proc_nargs' to 'l_vcshglobal_shinit_progopt_process_nshift'.
+			[ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 \
+					-a ${g_vcshglobal_shinit_progopt_process_opt_proc_nargs} -gt 0 ] \
+				&& l_vcshglobal_shinit_progopt_process_nshift="${g_vcshglobal_shinit_progopt_process_opt_proc_nargs}"
+		fi
+
+		# deal with an unrecognised (unhandled) long option...
+		if [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 \
+				-a ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 \
+				-a -n "${l_vcshglobal_shinit_progopt_process_arglongname}" ] ; then
+			f_vcshglobal_error "unrecognised long option '${l_vcshglobal_shinit_progopt_process_arglongname}' (full arg: '${l_vcshglobal_shinit_progopt_process_argfull}')" \
+				|| l_vcshglobal_shinit_progopt_process_rc=$?
+		fi
+
+		if [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 -a -n "${l_vcshglobal_shinit_progopt_process_optstr}" ] ; then
+			# process this arg as if it was the first (as it is, because
+			# we're shifting args to the front).
+			OPTIND=1
+
+			#? unset l_vcshglobal_shinit_progopt_process_argfull
+			if getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull "$@" ; then
+				#? prev: v1: # NOTE: use l_vcshglobal_shinit_progopt_process_nshift in
+				#? prev: v1: # this inner scope to flag whether we've processed the option
+				#? prev: v1: # or not.
+				#? prev: v1: # NOTE: l_vcshglobal_shinit_progopt_process_nshift will be
+				#? prev: v1: # assigned to before exiting the enclosing 'if'.
+				#? prev: v1: l_vcshglobal_shinit_progopt_process_nshift=0
+
+				case "${l_vcshglobal_shinit_progopt_process_argfull}" in
+					# MAYBE: common options?
+
+					: )
+						f_vcshglobal_error "missing option value for '${OPTARG}'" \
+							|| l_vcshglobal_shinit_progopt_process_rc=$?
+						;;
+
+					? )
+						f_vcshglobal_error "unrecognised option '${OPTARG}'" \
+							|| l_vcshglobal_shinit_progopt_process_rc=$?
+						;;
+
+					* )
+						f_vcshglobal_shinit_progopt_custom_handle_shortoption "${l_vcshglobal_shinit_progopt_process_argfull}" "${OPTARG}" \
+							|| f_vcshglobal_error "error processing option '${l_vcshglobal_shinit_progopt_process_argfull}' (option_value='${OPTARG}')" \
+							|| l_vcshglobal_shinit_progopt_process_rc=$?
+						;;
+				esac
+			fi
+
+			l_vcshglobal_shinit_progopt_process_nshift=$(($OPTIND - 1))
+		fi
+
+		[ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a ${l_vcshglobal_shinit_progopt_process_nshift} -gt 0 ] \
+			|| break
+
+		# update variables, positional arguments.
+		l_vcshglobal_shinit_progopt_process_optind=$((${l_vcshglobal_shinit_progopt_process_optind} + ${l_vcshglobal_shinit_progopt_process_nshift}))
+		shift ${l_vcshglobal_shinit_progopt_process_nshift} \
+			|| f_vcshglobal_abort "internal error: cannot shift ${l_vcshglobal_shinit_progopt_process_nshift} args from a list of $# args ('$*')"
+	done
+
+	# commit to external variables
+	OPTIND="${l_vcshglobal_shinit_progopt_process_optind}"
+
+	# 'unset' "local" variables
+	unset \
+		l_vcshglobal_shinit_progopt_process_optstr \
+		l_vcshglobal_shinit_progopt_process_argfull \
+		l_vcshglobal_shinit_progopt_process_arglongname \
+		l_vcshglobal_shinit_progopt_process_arglongownname \
+		l_vcshglobal_shinit_progopt_process_arglongval \
+		l_vcshglobal_shinit_progopt_process_optind \
+		l_vcshglobal_shinit_progopt_process_nshift \
+		# end
+
+	return ${l_vcshglobal_shinit_progopt_process_rc}
+}
+# }}}
+
 # config file utility functions {{{
 
 # args: BASENAME
@@ -440,6 +682,14 @@ f_vcshglobal_main_proc_cfgfiles()
 	return ${l_vcshglobal_main_proc_cfgfiles_main_rc}
 }
 # }}}
+
+# FIXME: call this explicitly from somewhere else
+# TEST: for now, no options specified in g_vcshglobal_shinit_progopt_process_optstring
+OPTIND=1 && \
+f_vcshglobal_shinit_progopt_process "$@" \
+	&& shift $(($OPTIND - 1)) \
+	|| f_vcshglobal_abort "processing program options. remaining parameters: '$*'"
+f_vcshglobal_debug "remaining program args: '$*'"
 
 # FIXME: call this explicitly from somewhere else (a new function to be called from each top-level script?)
 f_vcshglobal_main_proc_cfgfiles \
