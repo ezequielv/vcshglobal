@@ -193,7 +193,6 @@ f_cmdhandler_send_record()
 
 # defaults {{{
 unset \
-	global_debug_flag \
 	g_verbose_flag \
 	\
 	g_record_format \
@@ -206,19 +205,40 @@ g_cmdkey_getallavailable='keys-available'
 # }}}
 
 # getopts {{{
-while getopts '1vDh' arg
-do
-	case "${arg}" in
-		1)	f_set_record_format 'single' ;;
 
-		v)	g_verbose_flag=1 ;;
-		D)	global_debug_flag=1 ;;
+# args: SHORT_OPTION_CHARACTER OPTARG_EQUIVALENT
+f_vcshglobal_shinit_progopt_custom_handle_shortoption()
+{
+	l_vcshglobal_shinit_progopt_custom_handle_shortoption_optchar="$1" \
+		&& [ -n "${l_vcshglobal_shinit_progopt_custom_handle_shortoption_optchar}" ] \
+		&& shift \
+		&& l_vcshglobal_shinit_progopt_custom_handle_shortoption_optarg="$1" \
+		&& shift \
+		|| f_vcshglobal_abort "f_vcshglobal_shinit_progopt_custom_handle_shortoption(): internal error: seemingly invalid args"
 
-		h)	f_help 0 ;;
-		?)	f_help 1 1>&2 ;;
+	case "${l_vcshglobal_shinit_progopt_custom_handle_shortoption_optchar}" in
+		1 )	f_set_record_format 'single' ;;
+
+		v )	g_verbose_flag=1 ;;
+		D )	g_vcshglobal_debug_flag=x ;;
+
+		# TODO: combine program-specific help with the "common options" help
+		#  TODO: create the "common options" help
+		h )	f_help 0 ;;
+		# not needed, but just in case
+		# prev: v1: ?)	f_help 1 1>&2 ;;
+		* )	f_help 1 1>&2 ;;
 	esac
-done
-shift $(($OPTIND - 1)) ; OPTIND=1
+}
+# NOTE: keep in sync with the above function's 'case..esac'.
+g_vcshglobal_shinit_progopt_process_optstring='1vDh'
+
+# boilerplate code to process options {{{
+[ -n "${g_vcshglobal_shinit_progopt_process_evalexpr}" ] \
+	&& eval "${g_vcshglobal_shinit_progopt_process_evalexpr}" \
+	|| f_vcshglobal_abort "processing program options. remaining parameters: '$*'"
+# }}}
+
 # }}}
 
 # if called without a command: error message, help and abort {{{
@@ -417,8 +437,14 @@ f_proc_command()
 	return ${l_proc_command_rc}
 }
 
-f_proc_command "$@"
 # }}}
+
+# process config files {{{
+f_vcshglobal_main_proc_cfgfiles \
+	|| f_vcshglobal_abort "failed processing main common code"
+# }}}
+
+f_proc_command "$@"
 
 # TODO: implement queries that would be useful from 'vcshglobaltools' repo programs:
 #  TODO: get one/serveral specified/all variables

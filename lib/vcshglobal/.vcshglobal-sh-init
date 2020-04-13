@@ -692,17 +692,18 @@ f_vcshglobal_main_proc_cfgfiles()
 }
 # }}}
 
-# FIXME: call this explicitly from somewhere else
-# TEST: for now, no options specified in g_vcshglobal_shinit_progopt_process_optstring
-OPTIND=1 && \
-f_vcshglobal_shinit_progopt_process "$@" \
-	&& shift $(($OPTIND - 1)) \
-	|| f_vcshglobal_abort "processing program options. remaining parameters: '$*'"
-f_vcshglobal_debug "remaining program args: '$*'"
-
-# FIXME: call this explicitly from somewhere else (a new function to be called from each top-level script?)
-f_vcshglobal_main_proc_cfgfiles \
-	|| f_vcshglobal_abort "failed processing main common code"
+#+ prev: v1: OPTIND=1 && \
+#+ prev: v1: f_vcshglobal_shinit_progopt_process "$@" \
+#+ prev: v1: 	&& shift $(($OPTIND - 1)) \
+#+ prev: v1: 	|| f_vcshglobal_abort "processing program options. remaining parameters: '$*'"
+#+ prev: v1: f_vcshglobal_debug "remaining program args: '$*'"
+g_vcshglobal_shinit_progopt_process_evalexpr='
+	OPTIND=1 && \
+	f_vcshglobal_shinit_progopt_process "$@" \
+		&& shift $(($OPTIND - 1)) \
+		|| f_vcshglobal_abort "processing program options. remaining parameters: \"$*\""
+	f_vcshglobal_debug "remaining program args: \"$*\""
+	'
 
 # defaults {{{
 # }}}

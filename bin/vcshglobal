@@ -77,6 +77,17 @@ f_vcsh_exec()
 
 # }}}
 
+# boilerplate code to process options {{{
+[ -n "${g_vcshglobal_shinit_progopt_process_evalexpr}" ] \
+	&& eval "${g_vcshglobal_shinit_progopt_process_evalexpr}" \
+	|| f_vcshglobal_abort "processing program options. remaining parameters: '$*'"
+# }}}
+
+# process config files {{{
+f_vcshglobal_main_proc_cfgfiles \
+	|| f_vcshglobal_abort "failed processing main common code"
+# }}}
+
 [ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (about to exec vcsh): '$@'" 1>&2
 
 # TEST: #-? f_vcsh_exec "$@"
