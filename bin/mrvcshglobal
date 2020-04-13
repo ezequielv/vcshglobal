@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 
-#-? # MAYBE: not: TODO: source ('.') the (to-be-created) file '.../.mrvcshglobal-sh-init' instead, and include '.vcshglobal-sh-init' from that one.
 # boilerplate code for scripts under {vcshglobal}/bin {{{
 VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 	&& . "${VCSHGLOBAL_INT_LASTPRGPATHNAME%/*}/.vcshglobal-sh-init" \
