@@ -233,14 +233,12 @@ f_vcshglobal_shinit_progopt_process()
 			OPTIND=1
 
 			#? unset l_vcshglobal_shinit_progopt_process_argfull
-			if getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull "$@" ; then
-				#? prev: v1: # NOTE: use l_vcshglobal_shinit_progopt_process_nshift in
-				#? prev: v1: # this inner scope to flag whether we've processed the option
-				#? prev: v1: # or not.
-				#? prev: v1: # NOTE: l_vcshglobal_shinit_progopt_process_nshift will be
-				#? prev: v1: # assigned to before exiting the enclosing 'if'.
-				#? prev: v1: l_vcshglobal_shinit_progopt_process_nshift=0
-
+			#? prev: v1: && getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull "$@"
+			# allow for the (possibly shell-dependant) multiple-option
+			# processing (as in '-12' for options '-1' and '-2').
+			while [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a ${OPTIND} -eq 1 ] \
+					&& getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull
+			do
 				case "${l_vcshglobal_shinit_progopt_process_argfull}" in
 					# MAYBE: common options?
 
@@ -260,7 +258,7 @@ f_vcshglobal_shinit_progopt_process()
 							|| l_vcshglobal_shinit_progopt_process_rc=$?
 						;;
 				esac
-			fi
+			done
 
 			l_vcshglobal_shinit_progopt_process_nshift=$(($OPTIND - 1))
 		fi
