@@ -249,7 +249,7 @@ f_vcshglobal_shinit_progopt_process()
 							|| l_vcshglobal_shinit_progopt_process_rc=$?
 						;;
 
-					? )
+					'?' )
 						f_vcshglobal_error "unrecognised option '${OPTARG}'" \
 							|| l_vcshglobal_shinit_progopt_process_rc=$?
 						;;
