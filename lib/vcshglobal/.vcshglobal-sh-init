@@ -238,8 +238,6 @@ f_vcshglobal_shinit_progopt_process()
 			OPTIND=1
 
 			f_vcshglobal_debug "  about to process remaining short args: '$*'; \$#=$#; OPTIND=${OPTIND};"
-			#? unset l_vcshglobal_shinit_progopt_process_argfull
-			#? prev: v1: && getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull "$@"
 			# allow for the (possibly shell-dependant) multiple-option
 			# processing (as in '-12' for options '-1' and '-2').
 			while [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a ${OPTIND} -eq 1 ] \
@@ -653,8 +651,6 @@ f_vcshglobal_main_proc_cfgfiles()
 					;;
 			esac
 
-			# prev: v1: [ ${l_vcshglobal_main_proc_cfgfiles_main_rc} -eq 0 ] \
-			# prev: v1: 	|| f_vcshglobal_abort "${l_vcshglobal_main_proc_cfgfiles_main_msgpref}failed in stage '${l_vcshglobal_main_proc_cfgfiles_main_stage}'. error_code=${l_vcshglobal_main_proc_cfgfiles_main_rc}."
 			[ ${l_vcshglobal_main_proc_cfgfiles_main_rc} -eq 0 ] \
 				|| break
 		done
@@ -692,11 +688,6 @@ f_vcshglobal_main_proc_cfgfiles()
 }
 # }}}
 
-#+ prev: v1: OPTIND=1 && \
-#+ prev: v1: f_vcshglobal_shinit_progopt_process "$@" \
-#+ prev: v1: 	&& shift $(($OPTIND - 1)) \
-#+ prev: v1: 	|| f_vcshglobal_abort "processing program options. remaining parameters: '$*'"
-#+ prev: v1: f_vcshglobal_debug "remaining program args: '$*'"
 g_vcshglobal_shinit_progopt_process_evalexpr='
 	OPTIND=1 && \
 	f_vcshglobal_shinit_progopt_process "$@" \
