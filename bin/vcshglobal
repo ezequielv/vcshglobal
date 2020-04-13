@@ -1,10 +1,6 @@
 #!/bin/sh
 set -e
 
-# TEST: # TODO: either remove this comment or this attempt at fixing the overwritten program args.
-# TEST: #  TODO: roll back the code near the end of the script, if needed (put back the "$@")
-# TEST: vcshglobal_top_args="$*"
-
 [ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (initial): '$@'" 1>&2
 
 # boilerplate code for scripts under {vcshglobal}/bin {{{
@@ -90,8 +86,6 @@ f_vcshglobal_main_proc_cfgfiles \
 
 [ -n "$VCSH_DEBUG" ] && echo "[DEBUG] vcshglobal: args (about to exec vcsh): '$@'" 1>&2
 
-# TEST: #-? f_vcsh_exec "$@"
-# TEST: f_vcsh_exec ${vcshglobal_top_args}
 f_vcsh_exec "$@"
 
 # vim600: set filetype=sh fileformat=unix:
