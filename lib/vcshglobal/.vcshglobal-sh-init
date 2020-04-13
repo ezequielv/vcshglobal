@@ -134,9 +134,11 @@ f_vcshglobal_shinit_progopt_process()
 			|| l_vcshglobal_shinit_progopt_process_rc=$?
 	fi
 
+	f_vcshglobal_debug "before processing all args. args='$*'; \$#=$#; optind_now=${l_vcshglobal_shinit_progopt_process_optind}; func_rc=${l_vcshglobal_shinit_progopt_process_rc};"
 	while [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a $# -gt 0 ]
 	do
 		l_vcshglobal_shinit_progopt_process_nshift=0
+		f_vcshglobal_debug " before processing batch of args. remaining args='$*'; \$#=$#; func_rc=${l_vcshglobal_shinit_progopt_process_rc};"
 
 		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 ] ; then
 			l_vcshglobal_shinit_progopt_process_argfull="$1"
@@ -178,11 +180,13 @@ f_vcshglobal_shinit_progopt_process()
 		fi
 
 		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 -a -n "${l_vcshglobal_shinit_progopt_process_arglongname}" ] ; then
+			f_vcshglobal_debug "  about to process long arg: '${l_vcshglobal_shinit_progopt_process_argfull}'; option_name='${l_vcshglobal_shinit_progopt_process_arglongname}'; option_val_opt='${l_vcshglobal_shinit_progopt_process_arglongval}';"
 			case "${l_vcshglobal_shinit_progopt_process_arglongname}" in
 				${g_vcshglobal_shinit_progopt_longopt_pref}-* )
 					l_vcshglobal_shinit_progopt_process_arglongownname="${l_vcshglobal_shinit_progopt_process_arglongname#*-}" \
 						&& [ "${l_vcshglobal_shinit_progopt_process_arglongownname}" != "${l_vcshglobal_shinit_progopt_process_arglongname}" ] \
 						|| f_vcshglobal_abort "internal error: trimming option prefix did not yield the expected result. full option string: '${l_vcshglobal_shinit_progopt_process_argfull}'"
+					f_vcshglobal_debug "   about to process 'common' long arg: '${l_vcshglobal_shinit_progopt_process_argfull}'; own_name='${l_vcshglobal_shinit_progopt_process_arglongownname}'; option_name='${l_vcshglobal_shinit_progopt_process_arglongname}'; option_val_opt='${l_vcshglobal_shinit_progopt_process_arglongval}';"
 
 					l_vcshglobal_shinit_progopt_process_nshift=1
 					case "${l_vcshglobal_shinit_progopt_process_arglongownname}" in
@@ -190,10 +194,10 @@ f_vcshglobal_shinit_progopt_process()
 							f_vcshglobal_echo_to_stdout "TODO: help message" ;; # FIXME: implement
 
 						debug )
-							f_vcshglobal_debug "about to process '${l_vcshglobal_shinit_progopt_process_argfull}'. current_debug_flag='${g_vcshglobal_debug_flag}';"
+							f_vcshglobal_debug "    about to process '${l_vcshglobal_shinit_progopt_process_argfull}'. current_debug_flag='${g_vcshglobal_debug_flag}';"
 							[ "${l_vcshglobal_shinit_progopt_process_arglongval:-1}" -ne 0 ] \
 								&& g_vcshglobal_debug_flag=x || unset g_vcshglobal_debug_flag
-							f_vcshglobal_debug "processed '${l_vcshglobal_shinit_progopt_process_argfull}'. new_debug_flag='${g_vcshglobal_debug_flag}';"
+							f_vcshglobal_debug "    processed '${l_vcshglobal_shinit_progopt_process_argfull}'. new_debug_flag='${g_vcshglobal_debug_flag}';"
 							;;
 
 						* )
@@ -206,6 +210,7 @@ f_vcshglobal_shinit_progopt_process()
 
 		if [ ${l_vcshglobal_shinit_progopt_process_nshift} -eq 0 -a -n "${l_vcshglobal_shinit_progopt_process_arglongname}" ] ; then
 			g_vcshglobal_shinit_progopt_process_opt_proc_nargs=0
+			f_vcshglobal_debug "  about to process long arg using custom function: '${l_vcshglobal_shinit_progopt_process_argfull}'; option_name='${l_vcshglobal_shinit_progopt_process_arglongname}'; option_val_opt='${l_vcshglobal_shinit_progopt_process_arglongval}';"
 
 			f_vcshglobal_shinit_progopt_custom_handle_longoption \
 					"${l_vcshglobal_shinit_progopt_process_argfull}" \
@@ -232,6 +237,7 @@ f_vcshglobal_shinit_progopt_process()
 			# we're shifting args to the front).
 			OPTIND=1
 
+			f_vcshglobal_debug "  about to process remaining short args: '$*'; \$#=$#; OPTIND=${OPTIND};"
 			#? unset l_vcshglobal_shinit_progopt_process_argfull
 			#? prev: v1: && getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull "$@"
 			# allow for the (possibly shell-dependant) multiple-option
@@ -239,6 +245,7 @@ f_vcshglobal_shinit_progopt_process()
 			while [ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a ${OPTIND} -eq 1 ] \
 					&& getopts "${l_vcshglobal_shinit_progopt_process_optstr}" l_vcshglobal_shinit_progopt_process_argfull
 			do
+				f_vcshglobal_debug "   [getopts loop iteration] about to process remaining args: '$*'; \$#=$#; arg_full='${l_vcshglobal_shinit_progopt_process_argfull}'; OPTARG='${OPTARG}';"
 				case "${l_vcshglobal_shinit_progopt_process_argfull}" in
 					# MAYBE: common options?
 
@@ -259,10 +266,12 @@ f_vcshglobal_shinit_progopt_process()
 						;;
 				esac
 			done
+			f_vcshglobal_debug "  after processing remaining short args: '$*'; \$#=$#; OPTIND=${OPTIND}; func_rc=${l_vcshglobal_shinit_progopt_process_rc};"
 
 			l_vcshglobal_shinit_progopt_process_nshift=$(($OPTIND - 1))
 		fi
 
+		f_vcshglobal_debug " after processing batch of args. remaining short args='$*'; \$#=$#; nshift_now=${l_vcshglobal_shinit_progopt_process_nshift}; func_rc=${l_vcshglobal_shinit_progopt_process_rc};"
 		[ ${l_vcshglobal_shinit_progopt_process_rc} -eq 0 -a ${l_vcshglobal_shinit_progopt_process_nshift} -gt 0 ] \
 			|| break
 
@@ -270,7 +279,9 @@ f_vcshglobal_shinit_progopt_process()
 		l_vcshglobal_shinit_progopt_process_optind=$((${l_vcshglobal_shinit_progopt_process_optind} + ${l_vcshglobal_shinit_progopt_process_nshift}))
 		shift ${l_vcshglobal_shinit_progopt_process_nshift} \
 			|| f_vcshglobal_abort "internal error: cannot shift ${l_vcshglobal_shinit_progopt_process_nshift} args from a list of $# args ('$*')"
+		f_vcshglobal_debug "  optind_now=${l_vcshglobal_shinit_progopt_process_optind};"
 	done
+	f_vcshglobal_debug "after processing all args. remaining args='$*'; \$#=$#; optind_now=${l_vcshglobal_shinit_progopt_process_optind}; func_rc=${l_vcshglobal_shinit_progopt_process_rc};"
 
 	# commit to external variables
 	OPTIND="${l_vcshglobal_shinit_progopt_process_optind}"
