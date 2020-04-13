@@ -226,7 +226,6 @@ f_vcshglobal_shinit_progopt_custom_handle_shortoption()
 		#  TODO: create the "common options" help
 		h )	f_help 0 ;;
 		# not needed, but just in case
-		# prev: v1: ?)	f_help 1 1>&2 ;;
 		* )	f_help 1 1>&2 ;;
 	esac
 }
@@ -411,7 +410,6 @@ f_proc_command()
 		# MAYBE: support multiple commands here and in the global scope, by
 		# using a separator (say, "::").
 		case "${l_proc_command_cmdid}" in
-			# prev: list-commands )
 			"${g_cmdkey_getallavailable}" )
 				f_cmdhandler_send_record \
 						"${g_cmdkey_getallavailable}" \
