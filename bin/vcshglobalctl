@@ -439,7 +439,7 @@ f_proc_command()
 					|| l_proc_command_rc=$?
 				;;
 
-			query )
+			'query' )
 				f_handlecmd_query "$@" \
 					|| l_proc_command_rc=$?
 				;;
