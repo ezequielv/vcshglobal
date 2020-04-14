@@ -18,8 +18,6 @@ VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 # args: STAGE_ID
 #
 # STAGE_ID:
-#  * [deprecated] stageid_vcshglobal_help_syntax_ownoptions_nonl
-#     example: printf '%s' '[program_options] '
 #  * stageid_vcshglobal_help_syntax_ownargs_nonl
 #    example printf '%s' ' COMMAND'
 #  * stageid_vcshglobal_help_summary_info

@@ -305,8 +305,6 @@ f_vcshglobal_shinit_progopt_process()
 # args: STAGE_ID
 #
 # STAGE_ID:
-#  * [deprecated] stageid_vcshglobal_help_syntax_ownoptions_nonl
-#     example: printf '%s' '[program_options] '
 #  * stageid_vcshglobal_help_syntax_ownargs_nonl
 #    example printf '%s' ' COMMAND'
 #  * stageid_vcshglobal_help_summary_info
@@ -327,7 +325,6 @@ f_vcshglobal_shinit_help_process()
 
 	for l_vcshglobal_shinit_help_process_stage in \
 		stageid_vcshglobal_help_start \
-		stageid_vcshglobal_help_syntax_ownoptions_nonl \
 		stageid_vcshglobal_help_syntax_mid \
 		stageid_vcshglobal_help_syntax_ownargs_nonl \
 		stageid_vcshglobal_help_syntax_end \
@@ -340,7 +337,6 @@ f_vcshglobal_shinit_help_process()
 		[ ${l_vcshglobal_shinit_help_process_rc} -eq 0 ] || break
 
 		case "${l_vcshglobal_shinit_help_process_stage}" in
-			stageid_vcshglobal_help_syntax_ownoptions_nonl | \
 			stageid_vcshglobal_help_syntax_ownargs_nonl | \
 			stageid_vcshglobal_help_summary_info | \
 			stageid_vcshglobal_help_section_ownoptions | \

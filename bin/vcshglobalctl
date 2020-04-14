@@ -14,8 +14,6 @@ VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 # args: STAGE_ID
 #
 # STAGE_ID:
-#  * [deprecated] stageid_vcshglobal_help_syntax_ownoptions_nonl
-#     example: printf '%s' '[program_options] '
 #  * stageid_vcshglobal_help_syntax_ownargs_nonl
 #    example printf '%s' ' COMMAND'
 #  * stageid_vcshglobal_help_summary_info
@@ -26,10 +24,6 @@ VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 f_vcshglobal_shinit_help_custom()
 {
 	case "$1" in
-		# prev: v1: stageid_vcshglobal_help_syntax_ownoptions_nonl )
-		# prev: v1: 	printf '%s' '[program_options] '
-		# prev: v1: 	;;
-
 		stageid_vcshglobal_help_syntax_ownargs_nonl )
 			printf '%s' ' [COMMAND [COMMAND_OPTIONS] [COMMAND_ARGS...]]'
 			;;
