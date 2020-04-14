@@ -11,11 +11,63 @@ VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 	}
 # }}}
 
-# syntax: f_help [exit_code]
-f_help()
+# args: STAGE_ID
+#
+# STAGE_ID:
+#  * [deprecated] stageid_vcshglobal_help_syntax_ownoptions_nonl
+#     example: printf '%s' '[program_options] '
+#  * stageid_vcshglobal_help_syntax_ownargs_nonl
+#    example printf '%s' ' COMMAND'
+#  * stageid_vcshglobal_help_summary_info
+#     example: echo 'Program that does something'
+#  * stageid_vcshglobal_help_section_ownoptions
+#  * stageid_vcshglobal_help_section_bottom
+#
+f_vcshglobal_shinit_help_custom()
 {
-	echo "${VCSHGLOBAL_INT_LASTPRGPATHNAME}" '[general options] [--] [COMMAND [command options] [COMMAND_ARGS...]]
+	case "$1" in
+		# prev: v1: stageid_vcshglobal_help_syntax_ownoptions_nonl )
+		# prev: v1: 	printf '%s' '[program_options] '
+		# prev: v1: 	;;
 
+		stageid_vcshglobal_help_syntax_ownargs_nonl )
+			printf '%s' ' [COMMAND [COMMAND_OPTIONS] [COMMAND_ARGS...]]'
+			;;
+
+		stageid_vcshglobal_help_summary_info )
+			printf '%s\n\n' "API-stable control/query program for vcshglobal settings"
+			;;
+
+		stageid_vcshglobal_help_section_ownoptions )
+			cat <<EOS
+Program Options - Program-specific:
+
+-1
+    output a single record without its COMMAND field (which is the first)
+    note: this is mutually exclusive with "-v";
+
+-v
+    include the COMMAND as the first field on each output record.
+    default: records do not include the COMMAND as the first field --
+             all the fields are command-specific.
+    note: this is mutually exclusive with "-1";
+
+-h
+    this help message.
+
+Command Options:
+
+-1
+    output a single record without its command-specific key field (which is the
+    first).
+    note: this forces the global "-1" flag;
+    note: this is incompatible with the global "-v" flag;
+
+EOS
+			;;
+
+		stageid_vcshglobal_help_section_bottom )
+			cat <<EOS
 queries/results output (to stdout):
 {key}[{separator}{value1[SEPARATOR{value2}..[SEPARATOR{valueN}]]}]
 
@@ -31,41 +83,19 @@ Notes:
     no other types can be requested (because the output format
     cannot currently cope with this);
  * errors are written to stderr;
- * the level-1 COMMAND "'"${g_cmdkey_getallavailable}"'" returns a list of all
+ * the level-1 COMMAND "${g_cmdkey_getallavailable}" returns a list of all
     the available commands, in machine-parsable format (see above)
     example:
-     $ '"${VCSHGLOBAL_INT_LASTPRGPATHNAME}"' '"${g_cmdkey_getallavailable}"'
- * some commands also support the COMMAND "'"${g_cmdkey_getallavailable}"'",
+     $ ${VCSHGLOBAL_INT_LASTPRGPATHNAME} ${g_cmdkey_getallavailable}
+ * some commands also support the COMMAND "${g_cmdkey_getallavailable}",
     which produces a list of available sub-commands/keys available for that
     COMMAND.
     example:
-     $ '"${VCSHGLOBAL_INT_LASTPRGPATHNAME}"' query -1 '"${g_cmdkey_getallavailable}"'
+     $ ${VCSHGLOBAL_INT_LASTPRGPATHNAME} query -1 ${g_cmdkey_getallavailable}
 
-* general options:
-
--1
-    output a single record without its COMMAND field (which is the first)
-    note: this is mutually exclusive with "-v";
-
--v
-    include the COMMAND as the first field on each output record.
-    default: records do not include the COMMAND as the first field --
-             all the fields are command-specific.
-    note: this is mutually exclusive with "-1";
-
--h
-    this help message.
-
-* command options:
-
--1
-    output a single record without its command-specific key field (which is the
-    first).
-    note: this forces the global "-1" flag;
-    note: this is incompatible with the global "-v" flag;
-
-'
-	[ -n "$1" ] && exit "$1"
+EOS
+			;;
+	esac
 	return 0
 }
 
@@ -222,11 +252,9 @@ f_vcshglobal_shinit_progopt_custom_handle_shortoption()
 		v )	g_verbose_flag=1 ;;
 		D )	g_vcshglobal_debug_flag=x ;;
 
-		# TODO: combine program-specific help with the "common options" help
-		#  TODO: create the "common options" help
-		h )	f_help 0 ;;
+		h )	f_vcshglobal_shinit_help_process 0 ;;
 		# not needed, but just in case
-		* )	f_help 1 1>&2 ;;
+		* )	f_vcshglobal_shinit_help_process 1 1>&2 ;;
 	esac
 }
 # NOTE: keep in sync with the above function's 'case..esac'.
@@ -243,7 +271,7 @@ g_vcshglobal_shinit_progopt_process_optstring='1vDh'
 # if called without a command: error message, help and abort {{{
 [ $# -gt 0 ] \
 	|| f_vcshglobal_error "please specify a COMMAND" \
-	|| f_help 1
+	|| f_vcshglobal_shinit_help_process 1
 # }}}
 
 # validations {{{
