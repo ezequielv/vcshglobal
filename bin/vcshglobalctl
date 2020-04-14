@@ -378,16 +378,60 @@ f_handlecmd_query()
 					# for now: manually maintained
 					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
 						"${g_cmdkey_getallavailable}" \
-						'test-1' \
+						'vg-config-files' \
+						'vg-base-dir' \
+						'vg-config-base-dir' \
+						'vg-fsys-src-dir' \
+						\
+						'vcsh-config-file' \
+						\
+						'mr-config-file' \
+						'mr-top-dir' \
 						# end
 					;;
 
-				# TODO: implement
-
-				# TODO: remove (TESTING)
-				'test-1' )
+				'vg-config-files' )
 					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
-						'remaining args:' "$@"
+						${VCSHGLOBAL_VG_CONFIG_FILE_PRE:+"${VCSHGLOBAL_VG_CONFIG_FILE_PRE}"} \
+						${VCSHGLOBAL_VG_CONFIG_FILE_MAIN:+"${VCSHGLOBAL_VG_CONFIG_FILE_MAIN}"} \
+						${VCSHGLOBAL_VG_CONFIG_FILE_POST:+"${VCSHGLOBAL_VG_CONFIG_FILE_POST}"} \
+						# end
+					;;
+
+				'vg-base-dir' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						"${VCSHGLOBAL_VG_BASE_D}" \
+						# end
+					;;
+
+				'vg-config-base-dir' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						"${VCSHGLOBAL_VG_CFG_D}" \
+						# end
+					;;
+
+				'vg-fsys-src-dir' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						"${VCSHGLOBAL_VG_FSSRC_D}" \
+						# end
+					;;
+
+				'vcsh-config-file' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						"${VCSHGLOBAL_VCSH_CONFIG_FILE}" \
+						# end
+					;;
+
+				'mr-config-file' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						"${VCSHGLOBAL_MR_CONFIG_FILE}" \
+						# end
+					;;
+
+				'mr-top-dir' )
+					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
+						"${VCSHGLOBAL_MR_TOP_D}" \
+						# end
 					;;
 
 				* ) f_cmdhandler_abort "invalid query: '${l_handlecmd_query_queryid}'" ;;
