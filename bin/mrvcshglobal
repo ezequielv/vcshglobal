@@ -17,7 +17,7 @@ VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 #  * stageid_vcshglobal_help_syntax_ownargs_nonl
 #    example printf '%s' ' COMMAND'
 #  * stageid_vcshglobal_help_summary_info
-#     example: echo 'Program that does something'
+#     example: printf '%s\n\n' 'Program that does something'
 #  * stageid_vcshglobal_help_section_ownoptions
 #  * stageid_vcshglobal_help_section_bottom
 #
