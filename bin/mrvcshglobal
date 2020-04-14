@@ -11,6 +11,44 @@ VCSHGLOBAL_INT_LASTPRGPATHNAME="$0" \
 	}
 # }}}
 
+# args: STAGE_ID
+#
+# STAGE_ID:
+#  * [deprecated] stageid_vcshglobal_help_syntax_ownoptions_nonl
+#     example: printf '%s' '[program_options] '
+#  * stageid_vcshglobal_help_syntax_ownargs_nonl
+#    example printf '%s' ' COMMAND'
+#  * stageid_vcshglobal_help_summary_info
+#     example: echo 'Program that does something'
+#  * stageid_vcshglobal_help_section_ownoptions
+#  * stageid_vcshglobal_help_section_bottom
+#
+f_vcshglobal_shinit_help_custom()
+{
+	case "$1" in
+		stageid_vcshglobal_help_syntax_ownargs_nonl )
+			printf '%s' ' [MR_OPTIONS_AND_ARGS...]'
+			;;
+
+		stageid_vcshglobal_help_summary_info )
+			printf '%s\n\n' "mr(1) wrapper to manage global(/shared) deployments"
+			;;
+
+		stageid_vcshglobal_help_section_bottom )
+			cat <<EOS
+Every mr(1) command and option is supported.
+
+Note:
+    run "mr help" (or "${VCSHGLOBAL_INT_LASTPRGPATHNAME} help")
+    to get the help from 'mr(1)' itself.
+
+EOS
+			#-? f_mr_run help 2>&1 || :
+			;;
+	esac
+	return 0
+}
+
 # TODO: move to the "functions" file {{{
 unset \
 	VCSHGLOBAL_MR_INT_OPTIONS_GENERATED_FLAG \
