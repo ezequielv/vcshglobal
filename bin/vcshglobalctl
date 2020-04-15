@@ -57,6 +57,10 @@ Command Options:
     note: this forces the global "-${g_vcshglobalctl_shortopt_singlelinerec_optchar}" flag;
     note: this is incompatible with the global "-v" flag;
 
+-${g_vcshglobalctl_shortopt_allavailnoself_optchar}
+    do not include the command/subcommand id "${g_cmdkey_getallavailable}" in
+    the output for that same command
+
 EOS
 			;;
 
@@ -236,6 +240,9 @@ g_cmdkey_getallavailable='keys-available'
 #   in the caller-specified variable name).
 g_vcshglobalctl_shortopt_singlelinerec_optstr='1'
 g_vcshglobalctl_shortopt_singlelinerec_optchar="${g_vcshglobalctl_shortopt_singlelinerec_optstr%:}"
+
+g_vcshglobalctl_shortopt_allavailnoself_optstr='S'
+g_vcshglobalctl_shortopt_allavailnoself_optchar="${g_vcshglobalctl_shortopt_allavailnoself_optstr%:}"
 # }}}
 
 # args: SHORT_OPTION_CHARACTER OPTARG_EQUIVALENT
@@ -313,6 +320,7 @@ f_cmdhandler_abort()
 #  * set one or more of the following variables *when an option affects
 #    it/them* (these are initialised in 'f_proc_command()')
 #    * g_current_cmdopt_recsingle={'0' | '1'}
+#    * g_current_cmdopt_allavailincself_flag={empty | non-empty}
 #
 # returns:
 #  0: success:
@@ -344,11 +352,62 @@ f_cmdhandler_proccommonopt()
 				|| f_vcshglobal_abort "specifying '-v' and '-1' together is not supported"
 			;;
 
+		"${g_vcshglobalctl_shortopt_allavailnoself_optchar}" )
+			unset g_current_cmdopt_allavailincself_flag
+			;;
+
 		* )
 			g_cmdhandler_commonopt_processed=0 ;;
 	esac
 
 	return 0
+}
+
+f_handlecmd_getallavailable()
+{
+	l_handlecmd_getallavailable_rc=0
+
+	if [ ${l_handlecmd_getallavailable_rc} -eq 0 ] ; then
+		# TODO: encapsulate this even more:
+		#  IDEA: f_cmdhandler_proccmdopts OPTSTR USERVAR
+		#   MAYBE: this could look at the first character of OPTSTR to determine
+		#    whether the ':' has been specified, and thus adjust its behaviour
+		#    accordingly.
+		while getopts \
+				":${g_vcshglobalctl_shortopt_allavailnoself_optstr}" \
+				l_handlecmd_getallavailable_arg
+		do
+			f_cmdhandler_proccommonopt "${l_handlecmd_getallavailable_arg}" \
+				|| f_cmdhandler_abort "common processing failed"
+			# nothing to process if it was a "common" option
+			[ ${g_cmdhandler_commonopt_processed} -ne 0 ] && continue
+
+			case "${l_handlecmd_getallavailable_arg}" in
+				# TODO: see comments about f_cmdhandler_proccmdopts() (to be created) in 'f_handlecmd_getallavailable()'
+				':' )	f_cmdhandler_abort "missing value for option '${OPTARG}'" ;;
+				'?' )	f_cmdhandler_abort "invalid/unsupported option '${OPTARG}'" ;;
+			esac
+		done
+		shift $(($OPTIND - 1)) ; OPTIND=1
+	fi
+
+	# make sure there are no remaining/unrecognised options left
+	if [ ${l_handlecmd_getallavailable_rc} -eq 0 ] ; then
+		[ $# -eq 0 ] \
+			|| f_cmdhandler_abort "no remaining arguments/options are allowed. remaining args: '$*'; nargs=$#;"
+	fi
+
+	[ ${l_handlecmd_getallavailable_rc} -eq 0 ] \
+		&& f_cmdhandler_send_record \
+				${g_current_cmdopt_allavailincself_flag:+"${g_cmdkey_getallavailable}"} \
+				\
+				'query' \
+		|| l_handlecmd_getallavailable_rc=$?
+
+	unset \
+		l_handlecmd_getallavailable_arg \
+		# end
+	return ${l_handlecmd_getallavailable_rc}
 }
 
 f_handlecmd_query()
@@ -357,7 +416,7 @@ f_handlecmd_query()
 
 	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
 		while getopts \
-				":${g_vcshglobalctl_shortopt_singlelinerec_optstr}" \
+				":${g_vcshglobalctl_shortopt_singlelinerec_optstr}${g_vcshglobalctl_shortopt_allavailnoself_optstr}" \
 				l_handlecmd_query_arg
 		do
 			f_cmdhandler_proccommonopt "${l_handlecmd_query_arg}" \
@@ -366,6 +425,7 @@ f_handlecmd_query()
 			[ ${g_cmdhandler_commonopt_processed} -ne 0 ] && continue
 
 			case "${l_handlecmd_query_arg}" in
+				# TODO: see comments about f_cmdhandler_proccmdopts() (to be created) in 'f_handlecmd_getallavailable()'
 				':' )	f_cmdhandler_abort "missing value for option '${OPTARG}'" ;;
 				'?' )	f_cmdhandler_abort "invalid/unsupported option '${OPTARG}'" ;;
 			esac
@@ -389,7 +449,8 @@ f_handlecmd_query()
 				"${g_cmdkey_getallavailable}" )
 					# for now: manually maintained
 					f_cmdhandler_send_record "${l_handlecmd_query_queryid}" \
-						"${g_cmdkey_getallavailable}" \
+						${g_current_cmdopt_allavailincself_flag:+"${g_cmdkey_getallavailable}"} \
+						\
 						'vg-config-files' \
 						'vg-base-dir' \
 						'vg-config-base-dir' \
@@ -484,14 +545,18 @@ f_proc_command()
 		g_current_cmdid="${l_proc_command_cmdid}"
 		# variables related to "common options":
 		g_current_cmdopt_recsingle=0
+		g_current_cmdopt_allavailincself_flag=x
 
 		# MAYBE: support multiple commands here and in the global scope, by
 		# using a separator (say, "::").
 		case "${l_proc_command_cmdid}" in
 			"${g_cmdkey_getallavailable}" )
-				f_cmdhandler_send_record \
-						"${g_cmdkey_getallavailable}" \
-						'query' \
+				# prev: v1: f_cmdhandler_send_record \
+				# prev: v1: 		${g_current_cmdopt_allavailincself_flag:+"${g_cmdkey_getallavailable}"} \
+				# prev: v1: 		\
+				# prev: v1: 		'query' \
+				# prev: v1: 	|| l_proc_command_rc=$?
+				f_handlecmd_getallavailable "$@" \
 					|| l_proc_command_rc=$?
 				;;
 
