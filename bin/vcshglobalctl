@@ -587,15 +587,6 @@ f_vcshglobal_main_proc_cfgfiles \
 
 f_proc_command "$@"
 
-# TODO: implement queries that would be useful from 'vcshglobaltools' repo programs:
-#  TODO: get one/serveral specified/all variables
-#   FIXME: rationalise variable names first
-#   MAYBE: output shell code in the format 'var=value' for each variable (where single and/or double quotes are permitted)
-
-# IDEA: in programs belonging to the 'vcshglobaltools' repo:
-#  TODO: have a script fulfilling the same role that 'vcshglobal-sh-init' has in this repo
-#   TODO: create a function to ease the querying for information from 'vcshglobalctl'
-
 # vim600: set filetype=sh fileformat=unix:
 # vim: set noexpandtab:
 # vi: set autoindent tabstop=4 shiftwidth=4:
