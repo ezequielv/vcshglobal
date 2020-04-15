@@ -36,7 +36,7 @@ f_vcshglobal_shinit_help_custom()
 			cat <<EOS
 Program Options - Program-specific:
 
--1
+-${g_vcshglobalctl_shortopt_singlelinerec_optchar}
     output a single record without its COMMAND field (which is the first)
     note: this is mutually exclusive with "-v";
 
@@ -44,17 +44,17 @@ Program Options - Program-specific:
     include the COMMAND as the first field on each output record.
     default: records do not include the COMMAND as the first field --
              all the fields are command-specific.
-    note: this is mutually exclusive with "-1";
+    note: this is mutually exclusive with "-${g_vcshglobalctl_shortopt_singlelinerec_optchar}";
 
 -h
     this help message.
 
 Command Options:
 
--1
+-${g_vcshglobalctl_shortopt_singlelinerec_optchar}
     output a single record without its command-specific key field (which is the
     first).
-    note: this forces the global "-1" flag;
+    note: this forces the global "-${g_vcshglobalctl_shortopt_singlelinerec_optchar}" flag;
     note: this is incompatible with the global "-v" flag;
 
 EOS
@@ -230,6 +230,14 @@ g_cmdkey_getallavailable='keys-available'
 
 # getopts {{{
 
+# 'g_vcshglobalctl_shortopt_*_opt*' variables {{{
+# "*_optstr": full option string, such as 'f:';
+# "*_optchar": just the option character (usually the value set by 'getopts(1)'
+#   in the caller-specified variable name).
+g_vcshglobalctl_shortopt_singlelinerec_optstr='1'
+g_vcshglobalctl_shortopt_singlelinerec_optchar="${g_vcshglobalctl_shortopt_singlelinerec_optstr%:}"
+# }}}
+
 # args: SHORT_OPTION_CHARACTER OPTARG_EQUIVALENT
 f_vcshglobal_shinit_progopt_custom_handle_shortoption()
 {
@@ -241,7 +249,8 @@ f_vcshglobal_shinit_progopt_custom_handle_shortoption()
 		|| f_vcshglobal_abort "f_vcshglobal_shinit_progopt_custom_handle_shortoption(): internal error: seemingly invalid args"
 
 	case "${l_vcshglobal_shinit_progopt_custom_handle_shortoption_optchar}" in
-		1 )	f_set_record_format 'single' ;;
+		"${g_vcshglobalctl_shortopt_singlelinerec_optchar}" )
+			f_set_record_format 'single' ;;
 
 		v )	g_verbose_flag=1 ;;
 		D )	g_vcshglobal_debug_flag=x ;;
@@ -303,7 +312,7 @@ f_cmdhandler_abort()
 # side effects:
 #  * set one or more of the following variables *when an option affects
 #    it/them* (these are initialised in 'f_proc_command()')
-#    * g_current_cmdopt_recsingle={0 | 1}
+#    * g_current_cmdopt_recsingle={'0' | '1'}
 #
 # returns:
 #  0: success:
@@ -326,7 +335,7 @@ f_cmdhandler_proccommonopt()
 
 	g_cmdhandler_commonopt_processed=1
 	case "${l_cmdhandler_proccommonopt_opt}" in
-		1 )
+		"${g_vcshglobalctl_shortopt_singlelinerec_optchar}" )
 			g_current_cmdopt_recsingle=1
 			f_set_record_format 'single' \
 				|| f_cmdhandler_abort "failed to set" \
@@ -347,7 +356,9 @@ f_handlecmd_query()
 	l_handlecmd_query_rc=0
 
 	if [ ${l_handlecmd_query_rc} -eq 0 ] ; then
-		while getopts '1' l_handlecmd_query_arg
+		while getopts \
+				":${g_vcshglobalctl_shortopt_singlelinerec_optstr}" \
+				l_handlecmd_query_arg
 		do
 			f_cmdhandler_proccommonopt "${l_handlecmd_query_arg}" \
 				|| f_cmdhandler_abort "common processing failed"
@@ -355,7 +366,8 @@ f_handlecmd_query()
 			[ ${g_cmdhandler_commonopt_processed} -ne 0 ] && continue
 
 			case "${l_handlecmd_query_arg}" in
-				?)	f_cmdhandler_abort "invalid/unsupported option" ;;
+				':' )	f_cmdhandler_abort "missing value for option '${OPTARG}'" ;;
+				'?' )	f_cmdhandler_abort "invalid/unsupported option '${OPTARG}'" ;;
 			esac
 		done
 		shift $(($OPTIND - 1)) ; OPTIND=1
